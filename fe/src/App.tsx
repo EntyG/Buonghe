@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { ThemeProvider as MuiThemeProvider } from "@mui/material/styles";
 import { ThemeProvider as StyledThemeProvider } from "styled-components";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -24,6 +24,7 @@ import { v4 as uuidv4 } from "uuid";
 import { fileToStoredImage } from "./utils/imageUtils";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import Live2DCanvas from './components/Live2DModel/Live2DCanvas';
 
 const App: React.FC = () => {
   const dispatch = useDispatch();
@@ -44,6 +45,18 @@ const App: React.FC = () => {
   const [loadedSessionId, setLoadedSessionId] = useState<string>("");
   const [loadedEvaluations, setLoadedEvaluations] = useState<any[]>([]);
   const [submitPanelOpen, setSubmitPanelOpen] = useState(true);
+
+  // Live2D model state
+  const live2dRef = useRef<any>(null);
+  const [isModelReady, setIsModelReady] = useState(false);
+  const [currentMood, setCurrentMood] = useState('neutral');
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  // Handle model ready
+  const handleModelReady = useCallback(() => {
+    setIsModelReady(true);
+    console.log('Live2D model ready');
+  }, []);
 
   // Load persisted sessionId from localStorage on mount
   useEffect(() => {
@@ -534,8 +547,9 @@ const App: React.FC = () => {
               onCommandRun={handleCommandRun}
             />
           </LeftPanel>
+          {/* Right Panel - Live2D Model */}
           <RightPanel>
-            <TopBar>
+                        <TopBar>
               {/* /submit UI moved into ChatInput */}
 
               <ChatInput 
@@ -568,62 +582,70 @@ const App: React.FC = () => {
                 />
               </>
             )}
+    
           </RightPanel>
 
-          {/* Right Sidebar - Submit Panel */}
+          {/* Right Sidebar - Live2D Model */}
           <RightSidebar>
             <Box
               sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                p: 2,
-                borderBottom: "2px solid",
-                borderColor: "divider",
-                cursor: "pointer",
-                "&:hover": { bgcolor: "action.hover" },
+                width: '100%',
+                height: '100%',
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column',
+                bgcolor: 'background.paper',
+                overflow: 'hidden',
               }}
-              onClick={() => setSubmitPanelOpen(!submitPanelOpen)}
             >
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1, flex: 1 }}>
-                <TextField
-                  label="sessionId"
-                  size="small"
-                  value={sessionId}
-                  InputProps={{ readOnly: true }}
-                  onClick={(e) => e.stopPropagation()}
-                  fullWidth
+              {/* Loading State */}
+              {!isModelReady && (
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    inset: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 10,
+                    bgcolor: 'rgba(0,0,0,0.5)',
+                  }}
+                >
+                  <CircularProgress size={48} />
+                  <Box sx={{ mt: 2, color: 'text.secondary' }}>Loading Model...</Box>
+                </Box>
+              )}
+
+              {/* Live2D Canvas */}
+              <Box sx={{ flex: 1, position: 'relative', minHeight: 0 }}>
+                <Live2DCanvas
+                  ref={live2dRef}
+                  mood={currentMood}
+                  isSpeaking={isSpeaking}
+                  onReady={handleModelReady}
                 />
-                <Button
-                  variant="contained"
-                  size="small"
-                  onClick={(e) => { e.stopPropagation(); handleGetSessionId(); }}
-                  disabled={loading}
-                >
-                  Get
-                </Button>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={(e) => { e.stopPropagation(); loadEvaluationsInApp(); }}
-                  disabled={loading || !sessionId}
-                >
-                  Load
-                </Button>
               </Box>
-              <IconButton size="small">
-                {submitPanelOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-              </IconButton>
+
+              {/* Mood Indicator */}
+              {isModelReady && (
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: 16,
+                    left: 16,
+                    px: 2,
+                    py: 1,
+                    bgcolor: 'rgba(0,0,0,0.6)',
+                    borderRadius: 2,
+                    color: 'white',
+                    fontSize: '0.875rem',
+                  }}
+                >
+                  Mood: {currentMood} {isSpeaking && '🗣️'}
+                </Box>
+              )}
             </Box>
-            <Collapse in={submitPanelOpen}>
-              <Box sx={{ height: "calc(100vh - 80px)", overflowY: "auto", p: 2 }}>
-                <SubmitPanel
-                  sessionId={sessionId}
-                  cachedEvaluations={loadedEvaluations}
-                  cachedSessionId={loadedSessionId}
-                />
-              </Box>
-            </Collapse>
           </RightSidebar>
         </Layout>
       </StyledThemeProvider>
