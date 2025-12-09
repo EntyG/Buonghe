@@ -25,9 +25,8 @@ interface ChatResultsGridProps {
   results: ClusterResult[];
   mode: string;
   compact?: boolean;
-  maxImages?: number;
-  initialRows?: number;
-  rowsPerExpand?: number;
+  initialMaxImages?: number;  // Initial max images to show (default 8)
+  imagesPerExpand?: number;   // How many more images to show each time (default 8)
   searchType?: string; // 'text' | 'temporal' | 'visual' etc.
   onImageClick?: (item: ImageItem, imageUrl?: string) => void;
   onFeedback?: (imageId: string, type: 'positive' | 'negative' | null) => void;
@@ -38,9 +37,8 @@ const ChatResultsGrid: React.FC<ChatResultsGridProps> = ({
   results,
   mode,
   compact = false,
-  maxImages = 12,
-  initialRows = 1,
-  rowsPerExpand = 1,
+  initialMaxImages = 8,
+  imagesPerExpand = 8,
   searchType,
   onImageClick,
   onFeedback,
@@ -48,7 +46,7 @@ const ChatResultsGrid: React.FC<ChatResultsGridProps> = ({
 }) => {
   const gridRef = useRef<HTMLDivElement>(null);
   const [itemsPerRow, setItemsPerRow] = useState(8); // Default 8 per row
-  const [visibleRows, setVisibleRows] = useState(initialRows);
+  const [maxVisible, setMaxVisible] = useState(initialMaxImages); // Current max visible images
   const [visibleScenes, setVisibleScenes] = useState(3); // For temporal view
 
   // Check if this is a temporal search (scenes with before/now/after)
@@ -81,9 +79,8 @@ const ChatResultsGrid: React.FC<ChatResultsGridProps> = ({
     });
   });
 
-  // Calculate visible images based on complete rows
-  const maxVisibleItems = compact ? visibleRows * itemsPerRow : allImages.length;
-  const displayImages = allImages.slice(0, maxVisibleItems);
+  // Calculate visible images: starts at initialMaxImages, increases by imagesPerExpand each click
+  const displayImages = allImages.slice(0, maxVisible);
   const remainingCount = allImages.length - displayImages.length;
   const hasMore = remainingCount > 0;
 
@@ -93,7 +90,7 @@ const ChatResultsGrid: React.FC<ChatResultsGridProps> = ({
   const hasMoreScenes = remainingScenes > 0;
 
   const handleShowMore = () => {
-    setVisibleRows(prev => prev + rowsPerExpand);
+    setMaxVisible(prev => prev + imagesPerExpand);
   };
 
   const handleShowMoreScenes = () => {
