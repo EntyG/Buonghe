@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- 1. The Wide Brim of the Hat -->
+  <ellipse cx="32" cy="54" rx="30" ry="8" fill="#2D2D2D" stroke="#000" stroke-width="2"/>
+  
+  <!-- 2. The Hat Cone (Floppy Wizard Style) -->
+  <path d="M12 54 Q 32 -10 52 54" fill="#2D2D2D" stroke="#000" stroke-width="2"/>
+  
+  <!-- 3. The Red Band (Signature Megumin Color) -->
+  <path d="M17 44 Q 32 38 47 44 L 49 54 Q 32 58 15 54 Z" fill="#E53935" stroke="#000" stroke-width="1"/>
+  
+  <!-- 4. The Gold "Buckle" (Represents Magic/Quality) -->
+  <rect x="26" y="40" width="12" height="12" rx="2" fill="#FFD700" stroke="#000" stroke-width="1"/>
+  
+  <!-- 5. The "Play" Symbol inside the Buckle (The Movie Element) -->
+  <path d="M30 43 L 36 46 L 30 49 Z" fill="#2D2D2D"/>
+  
+  <!-- Optional: Tiny Sparkles for Magic -->
+  <circle cx="10" cy="20" r="2" fill="#FFD700"/>
+  <circle cx="54" cy="15" r="1.5" fill="#FFD700"/>
+</svg>
