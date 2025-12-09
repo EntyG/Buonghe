@@ -78,6 +78,11 @@ const Live2DCanvas = forwardRef<Live2DCanvasRef, Live2DCanvasProps>(({ mood = 'n
   const currentClothPosRef = useRef({ x: 0, y: 0 });
   const trackingRafRef = useRef<number | null>(null);
   const idleAnimationRafRef = useRef<number | null>(null);
+  
+  // Blinking state
+  const blinkIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isBlinkingRef = useRef(false);
+  const blinkStartTimeRef = useRef(0);
 
   const applyMouthOpen = useCallback((value: number) => {
     try {
@@ -316,6 +321,17 @@ const Live2DCanvas = forwardRef<Live2DCanvasRef, Live2DCanvasProps>(({ mood = 'n
   }, [startSmoothTracking]);
 
   const startIdleAnimation = useCallback(() => {
+    // Start blinking timer (blink every 3-6 seconds randomly)
+    const scheduleBlink = () => {
+      const nextBlinkDelay = 3000 + Math.random() * 3000; // 3-6 seconds
+      blinkIntervalRef.current = setTimeout(() => {
+        isBlinkingRef.current = true;
+        blinkStartTimeRef.current = performance.now();
+        scheduleBlink(); // Schedule next blink
+      }, nextBlinkDelay);
+    };
+    scheduleBlink();
+
     const animateIdle = () => {
       try {
         if (!modelRef.current?.internalModel?.coreModel) {
@@ -332,6 +348,39 @@ const Live2DCanvas = forwardRef<Live2DCanvasRef, Live2DCanvasProps>(({ mood = 'n
         }
 
         const time = performance.now() * 0.001; // Convert to seconds
+
+        // === BLINKING ANIMATION ===
+        // Blink duration is ~150ms (close) + ~100ms (open)
+        const blinkDuration = 250; // Total blink duration in ms
+        let eyeOpenValue = 1; // Default: eyes fully open
+
+        if (isBlinkingRef.current) {
+          const blinkElapsed = performance.now() - blinkStartTimeRef.current;
+          
+          if (blinkElapsed < 100) {
+            // Closing phase (0-100ms)
+            eyeOpenValue = 1 - (blinkElapsed / 100);
+          } else if (blinkElapsed < 150) {
+            // Closed phase (100-150ms)
+            eyeOpenValue = 0;
+          } else if (blinkElapsed < blinkDuration) {
+            // Opening phase (150-250ms)
+            eyeOpenValue = (blinkElapsed - 150) / 100;
+          } else {
+            // Blink complete
+            isBlinkingRef.current = false;
+            eyeOpenValue = 1;
+          }
+        }
+
+        // Apply eye open values
+        const eyeOpenParams = ['ParamEyeLOpen', 'ParamEyeROpen', 'PARAM_EYE_L_OPEN', 'PARAM_EYE_R_OPEN', 'ParamEyeOpen'];
+        for (const paramName of eyeOpenParams) {
+          const idx = params.ids.indexOf(paramName);
+          if (idx !== -1) {
+            params.values[idx] = eyeOpenValue;
+          }
+        }
 
         // Very subtle idle body sway
         const swayValue = Math.sin(time * 0.3) * 2; // Slow, subtle movement
@@ -721,6 +770,12 @@ const Live2DCanvas = forwardRef<Live2DCanvasRef, Live2DCanvasProps>(({ mood = 'n
         cancelAnimationFrame(idleAnimationRafRef.current);
         idleAnimationRafRef.current = null;
       }
+      // Clear blinking timer
+      if (blinkIntervalRef.current) {
+        clearTimeout(blinkIntervalRef.current);
+        blinkIntervalRef.current = null;
+      }
+      isBlinkingRef.current = false;
     },
   }), [startMouthAnimation, stopMouthAnimation, stopLipSync, startLipSync, startEyeTracking, resetGazePosition, startIdleAnimation]);
 
@@ -894,6 +949,11 @@ const Live2DCanvas = forwardRef<Live2DCanvasRef, Live2DCanvasProps>(({ mood = 'n
       if (idleAnimationRafRef.current) {
         cancelAnimationFrame(idleAnimationRafRef.current);
         idleAnimationRafRef.current = null;
+      }
+      // Clear blinking timer
+      if (blinkIntervalRef.current) {
+        clearTimeout(blinkIntervalRef.current);
+        blinkIntervalRef.current = null;
       }
       if (app) {
         app.destroy(true, { children: true });
