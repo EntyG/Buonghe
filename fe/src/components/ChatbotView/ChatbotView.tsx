@@ -35,6 +35,7 @@ import {
   getRephraseSuggestions,
   visualSearch,
   smartSearch,
+  getVisualSearchReaction,
   MeguminSmartChatResponse,
   SearchType,
   HONEY_BE_URL,
@@ -336,10 +337,42 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
     updateMood('thinking');
 
     try {
+      // Step 1: Perform visual search
       const res = await visualSearch(imageFile, mode, SEARCH_MODEL, latestStateId);
       
       const totalImages = res.results.reduce((acc, c) => acc + c.image_list.length, 0);
-      const { text: botText, mood } = generateBotResponse('visual', totalImages, res.results.length);
+      
+      // Step 2: Get Megumin's reaction with voice
+      let botText = '';
+      let mood = 'happy';
+      
+      try {
+        const reactionResponse = await getVisualSearchReaction(
+          totalImages,
+          res.results.length,
+          chatSessionId
+        );
+        
+        const reactionData = reactionResponse.data;
+        botText = reactionData.meguminResponse.text;
+        mood = reactionData.meguminResponse.mood || 'happy';
+        
+        // Play Megumin's voice if available
+        if (reactionData.audio?.url && !reactionData.useFallbackAudio) {
+          const fullAudioUrl = reactionData.audio.url.startsWith('http') 
+            ? reactionData.audio.url 
+            : `${HONEY_BE_URL}${reactionData.audio.url}`;
+          // Avatar lipSync has visemes nested inside
+          const lipSyncData = (reactionData.avatar as any)?.lipSync?.visemes;
+          playMeguminAudio(fullAudioUrl, lipSyncData);
+        }
+      } catch (reactionError) {
+        console.warn('⚠️ Could not get Megumin reaction, using fallback:', reactionError);
+        // Fallback to static response if Megumin is unavailable
+        const fallback = generateBotResponse('visual', totalImages, res.results.length);
+        botText = fallback.text;
+        mood = fallback.mood;
+      }
 
       setConversations(prev => prev.map(c => 
         c.id === convId 
@@ -451,10 +484,10 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
 
   // Quick action suggestions
   const quickActions = conversations.length === 0 ? [
-    'a woman stretch the bow then fire an arrow but then it missed',
-    'a man holding 2 pills one red, one blue',
-    'describe yourself',
-    'a man wearing a hat which have the text "New York" on it',
+    'a woman stretch the bow then fire an arrow but then it missed', //temporal
+    'a man holding 2 pills one red, one blue', //text
+    'describe yourself', //normal chat
+    'a man wearing a hat which have the text "New York" on it' //filter
   ] : [];
 
   return (

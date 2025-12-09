@@ -62,10 +62,9 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
       if (!filters) return message.text;
       
       const parts: string[] = [];
-      if (textQuery) parts.push(`text: "${textQuery}"`);
+      if (textQuery) parts.push(`Text: "${textQuery}"`);
       if (filters.ocr?.length) parts.push(`OCR: ${filters.ocr.join(', ')}`);
-      if (filters.objects?.length) parts.push(`Objects: ${filters.objects.join(', ')}`);
-      if (filters.subtitle?.length) parts.push(`Subtitle: ${filters.subtitle.join(', ')}`);
+      if (filters.genre?.length) parts.push(`Genre: ${filters.genre.join(', ')}`);
       
       return parts.join(' | ') || message.text;
     }

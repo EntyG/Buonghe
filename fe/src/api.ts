@@ -245,6 +245,79 @@ export const postChatFilter = async (payload: any): Promise<any> => {
   return res.data;
 };
 
+// Filter search payload interface (simplified to only OCR and Genre)
+export interface FilterSearchPayload {
+  mode: string;
+  filters: {
+    ocr: string[];
+    genre: string[];
+  };
+  text: string;  // Optional visual description
+  top_k: number;
+}
+
+// Helper: Generate mock filter search results with filter info in cluster names
+const generateMockFilterResults = (payload: FilterSearchPayload): SearchResponse => {
+  const clusters: ClusterResult[] = [];
+  const { filters, text } = payload;
+  
+  // Build description of applied filters (only OCR and Genre)
+  const filterParts: string[] = [];
+  if (filters.ocr?.length) filterParts.push(`OCR: "${filters.ocr.join(', ')}"`);
+  if (filters.genre?.length) filterParts.push(`Genre: ${filters.genre.join(', ')}`);
+  
+  const filterDescription = filterParts.length > 0 
+    ? filterParts.join(' | ') 
+    : 'No filters';
+  
+  const clusterCount = Math.floor(Math.random() * 3) + 2; // 2-4 clusters
+  for (let i = 0; i < clusterCount; i++) {
+    const imageCount = Math.floor(Math.random() * 5) + 3; // 3-7 images
+    const movie = MOCK_MOVIES[i % MOCK_MOVIES.length];
+    
+    clusters.push({
+      cluster_name: `${movie.name} - ${text || 'Filtered Results'}`,
+      url: null,
+      image_list: generateMockImages(imageCount, i + Date.now() % 100),
+    });
+  }
+
+  console.log(`[MOCK] Filter search - Text: "${text}", Filters: ${filterDescription}`);
+
+  return {
+    results: clusters,
+    state_id: `mock_filter_${Date.now()}`,
+    mode: "moment",
+    status: "success",
+  };
+};
+
+/**
+ * Filter search - search with metadata filters (subtitle, OCR, object, genre)
+ */
+export const filterSearch = async (
+  payload: FilterSearchPayload,
+  collection: string = "clip_production_1024",
+  state_id?: string
+): Promise<SearchResponse> => {
+  // MOCK MODE
+  if (USE_MOCK_RETRIEVAL) {
+    console.log("[MOCK] filterSearch:", payload);
+    await mockDelay(500);
+    return generateMockFilterResults(payload);
+  }
+
+  // Real API call
+  const requestPayload = {
+    ...payload,
+    collection,
+    ...(state_id && { state_id }),
+  };
+
+  const res = await axios.post(`${BASE_URL}/search/filter`, requestPayload);
+  return res.data as SearchResponse;
+};
+
 export const visualSearch = async (
   file: File,
   mode: ClusterMode,
@@ -400,6 +473,12 @@ export interface TemporalQuery {
   after: string | null;   // Scene description after the main event
 }
 
+// Filter query structure for FILTER searches (simplified to only OCR and Genre)
+export interface FilterQuery {
+  ocr: string[];       // Text visible on screen
+  genre: string[];     // Video genres/categories
+}
+
 export interface MeguminSmartChatResponse {
   success: boolean;
   data: {
@@ -409,6 +488,7 @@ export interface MeguminSmartChatResponse {
     searchType: SearchType;  // TEXT, TEMPORAL, FILTER, IMAGE, or NONE
     searchQuery: string | null;  // Optimized query for retrieval, null if chat-only
     temporalQuery: TemporalQuery | null;  // Structured temporal query for TEMPORAL type
+    filterQuery: FilterQuery | null;  // Filter metadata for FILTER type
     intent: "SEARCH" | "CHAT";
     // Megumin's response
     meguminResponse: {
@@ -454,6 +534,56 @@ export const smartChatWithMegumin = async (
 };
 
 /**
+ * Visual search reaction response from Megumin
+ */
+export interface MeguminVisualReactionResponse {
+  success: boolean;
+  data: {
+    meguminResponse: {
+      text: string;
+      mood: string;
+    };
+    audio: {
+      url: string;
+      duration: number;
+    } | null;
+    avatar: {
+      mood: string;
+      expression: string;
+      lipSync: Array<{
+        time: number;
+        value: number;
+        phoneme?: string;
+      }>;
+      gestures: string[];
+      duration: number;
+    };
+    sessionId: string;
+    useFallbackAudio: boolean;
+  };
+}
+
+/**
+ * Get Megumin's reaction to visual search results
+ * Called after visual search completes to get voice response
+ * @param resultCount - Number of images found
+ * @param clusterCount - Number of clusters/scenes found
+ * @param sessionId - Session ID for conversation context
+ */
+export const getVisualSearchReaction = async (
+  resultCount: number,
+  clusterCount: number,
+  sessionId: string = "default"
+): Promise<MeguminVisualReactionResponse> => {
+  const response = await axios.post(`${HONEY_BE_URL}/api/speech/react/visual`, {
+    resultCount,
+    clusterCount,
+    sessionId,
+  });
+  return response.data as MeguminVisualReactionResponse;
+};
+
+/**
  * Smart search flow:
  * 1. Send query to Megumin (honey-be) for classification
  * 2. Based on searchType, call the appropriate retrieval backend endpoint
@@ -475,19 +605,21 @@ export const smartSearch = async (
 ): Promise<SmartSearchResult> => {
   // Step 1: Ask Megumin to classify and respond
   const meguminResponse = await smartChatWithMegumin(query, sessionId);
-  const { isSearchQuery, searchType, searchQuery, temporalQuery } = meguminResponse.data;
+  const { isSearchQuery, searchType, searchQuery, temporalQuery, filterQuery } = meguminResponse.data;
   
   // Step 2: If it's a search query, call the appropriate retrieval backend
   let searchResult: SearchResponse | null = null;
   
-  if (isSearchQuery && searchQuery) {
-    console.log(`🔍 Megumin classified: ${searchType} search, query: "${searchQuery}"`);
+  if (isSearchQuery) {
+    console.log(`🔍 Megumin classified: ${searchType} search`);
     
     try {
       switch (searchType) {
         case "TEXT":
           // Standard text search
-          searchResult = await searchClusters(searchQuery, mode, collection, state_id, top_k);
+          if (searchQuery) {
+            searchResult = await searchClusters(searchQuery, mode, collection, state_id, top_k);
+          }
           break;
           
         case "TEMPORAL":
@@ -498,12 +630,12 @@ export const smartSearch = async (
             // Convert to TemporalSearchInput array [before, now, after]
             const temporalInputs: [TemporalSearchInput, TemporalSearchInput, TemporalSearchInput] = [
               { type: "text", content: temporalQuery.before || "" },
-              { type: "text", content: temporalQuery.now || searchQuery },  // Fallback to searchQuery if now is null
+              { type: "text", content: temporalQuery.now || searchQuery || "" },
               { type: "text", content: temporalQuery.after || "" }
             ];
             
             searchResult = await temporalSearch(temporalInputs, collection, state_id);
-          } else {
+          } else if (searchQuery) {
             // Fallback: use searchQuery as the "now" event
             console.log("⏰ Temporal search fallback - using single query as 'now' event");
             const fallbackInputs: [TemporalSearchInput, TemporalSearchInput, TemporalSearchInput] = [
@@ -516,10 +648,27 @@ export const smartSearch = async (
           break;
           
         case "FILTER":
-          // TODO: Call filter endpoint when available
-          // Filter requires existing state_id
-          console.log("🔧 Filter requested - using text search as fallback");
-          searchResult = await searchClusters(searchQuery, mode, collection, state_id, top_k);
+          // Filter search with metadata filters (OCR and Genre only)
+          if (filterQuery) {
+            console.log("🔧 Filter search with:", { searchQuery, filterQuery });
+            
+            // Build filter payload matching backend API
+            const filterPayload = {
+              mode: "moment",
+              filters: {
+                ocr: filterQuery.ocr || [],
+                genre: filterQuery.genre || [],
+              },
+              text: searchQuery || "",  // Visual description (optional)
+              top_k,
+            };
+            
+            searchResult = await filterSearch(filterPayload, collection, state_id);
+          } else if (searchQuery) {
+            // No filter data, fall back to text search
+            console.log("🔧 Filter search fallback to text search");
+            searchResult = await searchClusters(searchQuery, mode, collection, state_id, top_k);
+          }
           break;
           
         case "IMAGE":
@@ -529,7 +678,9 @@ export const smartSearch = async (
           break;
           
         default:
-          searchResult = await searchClusters(searchQuery, mode, collection, state_id, top_k);
+          if (searchQuery) {
+            searchResult = await searchClusters(searchQuery, mode, collection, state_id, top_k);
+          }
       }
     } catch (err) {
       console.error("Search backend error:", err);

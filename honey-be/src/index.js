@@ -1,8 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import fileUpload from 'express-fileupload';
-import { WebSocketServer } from 'ws';
-import { createServer } from 'http';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -12,7 +10,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 import speechRoutes from './routes/speech.js';
-import { handleWebSocketConnection } from './websocket/speechHandler.js';
 
 dotenv.config();
 
@@ -86,24 +83,14 @@ app.get('/api/health', (req, res) => {
     status: 'ok', 
     timestamp: new Date().toISOString(),
     services: {
-      gemini: !!process.env.GEMINI_API_KEY
+      gemini: !!process.env.GEMINI_API_KEY,
+      elevenlabs: !!process.env.ELEVENLABS_API_KEY
     },
     directories: {
       temp: fs.existsSync(tempDir),
       audio: fs.existsSync(publicAudioDir)
     }
   });
-});
-
-// Create HTTP server
-const server = createServer(app);
-
-// WebSocket server for real-time streaming
-const wss = new WebSocketServer({ server, path: '/ws/speech' });
-
-wss.on('connection', (ws) => {
-  console.log('🔌 WebSocket client connected');
-  handleWebSocketConnection(ws);
 });
 
 // Error handling middleware
@@ -115,22 +102,20 @@ app.use((err, req, res, next) => {
   });
 });
 
-server.listen(PORT, () => {
+app.listen(PORT, () => {
   console.log(`
-🍯 Honey Backend Server Running (Gemini)
+🍯 Honey Backend Server (Megumin AI)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📡 HTTP:      http://localhost:${PORT}
-🔌 WebSocket: ws://localhost:${PORT}/ws/speech
+📡 HTTP: http://localhost:${PORT}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📋 Endpoints:
-   POST /api/speech/tts          - Text to Speech (Gemini)
-   POST /api/speech/chat         - Chat pipeline
-   POST /api/speech/chat/text    - Text chat (direct)
-   POST /api/speech/chat/smart   - Smart chat (classify + respond) ⭐
+   POST /api/speech/chat/smart   - Smart chat (classify + respond)
+   DELETE /api/speech/audio/:id  - Delete audio file
    GET  /api/health              - Health check
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🔑 Environment:
    GEMINI_API_KEY: ${process.env.GEMINI_API_KEY ? '✅ Set' : '❌ Missing'}
+   ELEVENLABS_API_KEY: ${process.env.ELEVENLABS_API_KEY ? '✅ Set' : '❌ Missing'}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   `);
 });

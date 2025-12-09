@@ -42,8 +42,7 @@ export interface ChatMessage {
     text?: string; // Text query for filter commands
     filters?: {
       ocr: string[];
-      subtitle: string[];
-      objects: string[];
+      genre: string[];
     };
     isFilterAll?: boolean;
   };

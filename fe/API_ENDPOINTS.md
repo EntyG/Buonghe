@@ -166,6 +166,10 @@ This document describes all API endpoints required by the frontend application.
       "now": "main event",
       "after": "scene after"
     },
+    "filterQuery": {
+      "ocr": ["game over", "text on screen"],
+      "genre": ["horror", "comedy"]
+    },
     "intent": "SEARCH | CHAT",
     "meguminResponse": {
       "text": "Megumin's response text",
@@ -193,9 +197,45 @@ This document describes all API endpoints required by the frontend application.
 
 ---
 
-## 3. Image Server (BASE_IMAGE_URL)
+## 3. Retrieval Backend - Filter Search
 
-### 3.1 Get Frame Image
+### 3.1 Filter Search (Metadata-based)
+**Endpoint:** `POST /search/filter`
+
+**Description:** Search with metadata filters (OCR text on screen, genre categories) optionally combined with visual description.
+
+**Request:**
+```json
+{
+  "mode": "moment",
+  "filters": {
+    "ocr": ["game over"],
+    "genre": ["horror", "comedy"]
+  },
+  "text": "person walking",
+  "top_k": 256,
+  "collection": "siglip2_production_1152",
+  "state_id": "optional_previous_state_id"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `mode` | string | Yes | Clustering mode: `moment` |
+| `filters.ocr` | string[] | No | Text visible on screen (OCR detection) |
+| `filters.genre` | string[] | No | Video genre categories (horror, comedy, action, drama, etc.) |
+| `text` | string | No | Optional visual description to combine with filters |
+| `top_k` | number | Yes | Max results to return |
+| `collection` | string | No | Model collection |
+| `state_id` | string | No | Previous search state for continuation |
+
+**Response:** Same as Text Search
+
+---
+
+## 4. Image Server (BASE_IMAGE_URL)
+
+### 4.1 Get Frame Image
 **URL Pattern:** `{BASE_IMAGE_URL}/{path}{id}.webp`
 
 **Example:** `http://14.225.217.119:8081/L01_V001/001234.webp`
@@ -213,6 +253,23 @@ type ClusterMode = "timeline" | "location" | "moment" | "video";
 ### SearchType (from Megumin classification)
 ```typescript
 type SearchType = "TEXT" | "TEMPORAL" | "FILTER" | "IMAGE" | "NONE";
+```
+
+### TemporalQuery
+```typescript
+interface TemporalQuery {
+  before: string | null;  // Scene description before the main event
+  now: string | null;     // Main event being searched
+  after: string | null;   // Scene description after the main event
+}
+```
+
+### FilterQuery
+```typescript
+interface FilterQuery {
+  ocr: string[];    // Text visible on screen (OCR detection)
+  genre: string[];  // Video genre categories (horror, comedy, action, etc.)
+}
 ```
 
 ### ImageItem
