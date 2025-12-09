@@ -799,11 +799,11 @@ const Live2DCanvas = forwardRef<Live2DCanvasRef, Live2DCanvasProps>(({ mood = 'n
         setDebugInfo('Setting up model...');
         console.log('📦 Model loaded, setting up...');
         
-        // Setup model - Smaller scale for better fit
-        model.scale.set(0.23);  // Reduced from 0.25 to 0.2
+        // Setup model - Scale to fit panel height
+        model.scale.set(0.18);  // Smaller to fit full body
         model.anchor.set(0.5, 0.5);
         model.x = app.screen.width / 2;
-        model.y = app.screen.height / 2 + 150;
+        model.y = app.screen.height / 2 + 50;  // Less offset to show full body
         // Disable pointer interaction to avoid Pixi v7 interaction manager issues
         // with pixi-live2d-display; we focus on autonomous motions for now.
         model.eventMode = 'none';
@@ -857,7 +857,7 @@ const Live2DCanvas = forwardRef<Live2DCanvasRef, Live2DCanvasProps>(({ mood = 'n
             const height = containerRef.current.clientHeight || 600;
             app.renderer.resize(width, height);
             model.x = width / 2;
-            model.y = height / 2 + 150;
+            model.y = height / 2 + 50;  // Less offset to show full body
           }
         };
 
@@ -927,31 +927,60 @@ const Live2DCanvas = forwardRef<Live2DCanvasRef, Live2DCanvasProps>(({ mood = 'n
   }, [isSpeaking, startMouthAnimation, stopMouthAnimation, stopLipSync]);
 
   return (
-    <div ref={containerRef} className="relative w-full h-full">
+    <div 
+      ref={containerRef} 
+      style={{ 
+        position: 'relative', 
+        width: '100%', 
+        height: '100%',
+        overflow: 'hidden'
+      }}
+    >
       {loading && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-gradient-to-b from-rose-950/40 to-purple-950/40 backdrop-blur-sm rounded-2xl">
-          <div className="text-5xl mb-4 animate-bounce">🎀</div>
-          <p className="text-rose-300 animate-pulse text-lg">Loading Megumin...</p>
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10,
+          background: 'rgba(0,0,0,0.5)',
+        }}>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🎀</div>
+          <p style={{ color: '#fda4af' }}>Loading Megumin...</p>
           {debugInfo && (
-            <p className="text-rose-400/60 text-sm mt-2">{debugInfo}</p>
+            <p style={{ color: 'rgba(251,113,133,0.6)', fontSize: '0.875rem', marginTop: '0.5rem' }}>{debugInfo}</p>
           )}
         </div>
       )}
       
       {error && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-red-950/90 rounded-2xl p-6">
-          <div className="text-4xl mb-4">😢</div>
-          <p className="text-red-300 text-center mb-2 font-medium">Failed to Load Megumin</p>
-          <p className="text-red-400/80 text-sm text-center max-w-md mb-4">{error}</p>
-          <div className="mt-2 p-3 bg-black/30 rounded-lg text-left max-w-md">
-            <p className="text-xs text-red-300/60 font-mono mb-2">Troubleshooting:</p>
-            <p className="text-xs text-red-300/80 font-mono">• Open browser console (F12)</p>
-            <p className="text-xs text-red-300/80 font-mono">• Check /public/live2d/ model files</p>
-            <p className="text-xs text-red-300/80 font-mono">• Verify Cubism SDK loaded</p>
-          </div>
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10,
+          background: 'rgba(127,29,29,0.9)',
+          padding: '1.5rem',
+        }}>
+          <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>😢</div>
+          <p style={{ color: '#fca5a5', textAlign: 'center', marginBottom: '0.5rem', fontWeight: 500 }}>Failed to Load Megumin</p>
+          <p style={{ color: 'rgba(252,165,165,0.8)', fontSize: '0.875rem', textAlign: 'center', maxWidth: '20rem', marginBottom: '1rem' }}>{error}</p>
           <button 
             onClick={() => window.location.reload()}
-            className="mt-4 px-6 py-2 bg-rose-500/30 hover:bg-rose-500/50 text-rose-200 rounded-lg transition-colors"
+            style={{
+              marginTop: '1rem',
+              padding: '0.5rem 1.5rem',
+              background: 'rgba(244,63,94,0.3)',
+              color: '#fecdd3',
+              borderRadius: '0.5rem',
+              border: 'none',
+              cursor: 'pointer',
+            }}
           >
             Reload Page
           </button>
