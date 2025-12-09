@@ -95,7 +95,7 @@ Remember: You're Megumin, their supportive anime companion who lives in their ap
     const {
       model = 'gemini-2.5-flash',
       temperature = 0.8,
-      maxTokens = 256,
+      maxTokens = 1024,
       context = null
     } = options;
 
@@ -547,9 +547,15 @@ Japanese:`;
 
       console.log(`✅ Audio generated: ${filename} (${duration.toFixed(1)}s)`);
 
+      // Schedule auto-deletion after 2 minutes (enough time to play + buffer)
+      setTimeout(() => {
+        this.deleteAudioFile(filepath);
+      }, 2 * 60 * 1000);
+
       return {
         audioUrl: `/audio/${filename}`,
         localPath: filepath,
+        filename,  // Return filename for manual deletion
         duration,
         useFallback: false,
         text,
@@ -642,6 +648,30 @@ Japanese:`;
    */
   getHistory(sessionId = 'default') {
     return this.conversationHistory.get(sessionId) || [];
+  }
+
+  /**
+   * Delete an audio file after playback
+   */
+  deleteAudioFile(filepath) {
+    try {
+      if (fs.existsSync(filepath)) {
+        fs.unlinkSync(filepath);
+        console.log(`🗑️ Deleted audio file: ${path.basename(filepath)}`);
+        return true;
+      }
+    } catch (error) {
+      console.error(`❌ Failed to delete audio file: ${error.message}`);
+    }
+    return false;
+  }
+
+  /**
+   * Delete audio file by filename
+   */
+  deleteAudioByFilename(filename) {
+    const filepath = path.join(__dirname, '../../public/audio', filename);
+    return this.deleteAudioFile(filepath);
   }
 }
 

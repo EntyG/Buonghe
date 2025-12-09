@@ -154,7 +154,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
     }
   }, []);
 
-  // Play audio from Megumin response
+  // Play audio from Megumin response and cleanup after playback
   const playMeguminAudio = useCallback((audioUrl: string, lipSyncData?: any[]) => {
     if (audioRef.current) {
       audioRef.current.pause();
@@ -162,6 +162,9 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
     
     const audio = new Audio(audioUrl);
     audioRef.current = audio;
+    
+    // Extract filename for cleanup
+    const filename = audioUrl.split('/').pop();
     
     audio.onplay = () => {
       setIsSpeaking(true);
@@ -174,6 +177,12 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
       setIsSpeaking(false);
       if (live2dRef.current?.stopSpeaking) {
         live2dRef.current.stopSpeaking();
+      }
+      
+      // Delete audio file after playback to save disk space
+      if (filename && filename.startsWith('elevenlabs-tts-')) {
+        fetch(`${HONEY_BE_URL}/api/speech/audio/${filename}`, { method: 'DELETE' })
+          .catch(err => console.warn('Audio cleanup failed:', err));
       }
     };
     
@@ -442,11 +451,10 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
 
   // Quick action suggestions
   const quickActions = conversations.length === 0 ? [
-    'person walking on the street',
-    'car driving on highway',
-    'people in a meeting room',
-    'outdoor nature landscape',
-    'food on a table',
+    'a woman stretch the bow then fire an arrow but then it missed',
+    'a man holding 2 pills one red, one blue',
+    'describe yourself',
+    'a man wearing a hat which have the text "New York" on it',
   ] : [];
 
   return (

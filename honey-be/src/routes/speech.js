@@ -272,6 +272,28 @@ router.post('/chat/smart', async (req, res, next) => {
 });
 
 /**
+ * DELETE /api/speech/audio/:filename
+ * Delete audio file after playback to save disk space
+ */
+router.delete('/audio/:filename', (req, res) => {
+  const { filename } = req.params;
+  
+  // Security: Only allow deleting elevenlabs-tts files
+  if (!filename.startsWith('elevenlabs-tts-') || !filename.endsWith('.mp3')) {
+    return res.status(400).json({ 
+      success: false, 
+      error: 'Invalid filename' 
+    });
+  }
+  
+  const deleted = geminiService.deleteAudioByFilename(filename);
+  res.json({
+    success: deleted,
+    message: deleted ? `Audio file deleted: ${filename}` : 'File not found or already deleted'
+  });
+});
+
+/**
  * DELETE /api/speech/history/:sessionId
  * Clear conversation history for a session
  */
