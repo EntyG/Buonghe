@@ -946,7 +946,7 @@ const Live2DCanvas = forwardRef<Live2DCanvasRef, Live2DCanvasProps>(({ mood = 'n
           <div className="mt-2 p-3 bg-black/30 rounded-lg text-left max-w-md">
             <p className="text-xs text-red-300/60 font-mono mb-2">Troubleshooting:</p>
             <p className="text-xs text-red-300/80 font-mono">• Open browser console (F12)</p>
-            <p className="text-xs text-red-300/80 font-mono">• Check /public/live2d/yuki/ files</p>
+            <p className="text-xs text-red-300/80 font-mono">• Check /public/live2d/ model files</p>
             <p className="text-xs text-red-300/80 font-mono">• Verify Cubism SDK loaded</p>
           </div>
           <button 

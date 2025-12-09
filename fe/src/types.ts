@@ -9,6 +9,8 @@ export interface ImageItem {
   videoId?: string;
   videoName?: string;
   frameNumber?: number;
+  // Temporal search position
+  temporalPosition?: 'before' | 'now' | 'after';
 }
 
 export interface VideoGroup {

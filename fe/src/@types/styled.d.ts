@@ -7,7 +7,9 @@ declare module "styled-components" {
     white: string;
     bg?: string;
     surface?: string;
+    surfaceAlt?: string;
     text?: string;
     buttonBg?: string;
+    border?: string;
   }
 }

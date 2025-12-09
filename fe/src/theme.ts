@@ -4,18 +4,24 @@ export const mainColors = {
   red: "#be0d00",
   black: "#000000",
   white: "#ffffff",
-  text: "#000000",
+  text: "#1a1a1a",
   buttonBg: "#ffffff",
+  bg: "#f5f5f5",
+  surface: "#ffffff",
+  surfaceAlt: "#e8e8e8",
+  border: "#ddd",
 };
 
 export const darkColors = {
-  red: "#ec5151ff",
+  red: "#ec5151",
   black: "#000000",
   white: "#ffffff",
-  bg: "#363738ff",
-  surface: "#313536ff",
-  text: "#fff",
-  buttonBg: "#2e3035ff",
+  bg: "#1a1a1a",
+  surface: "#2a2a2a",
+  surfaceAlt: "#3a3a3a",
+  text: "#ffffff",
+  buttonBg: "#2e3035",
+  border: "#404040",
 };
 
 export const muiTheme = createTheme({
