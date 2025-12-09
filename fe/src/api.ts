@@ -14,10 +14,6 @@ export const BASE_IMAGE_URL =
 export const HONEY_BE_URL =
   process.env.REACT_APP_HONEY_BE_URL || "http://localhost:3001";
 
-// External event retrieval API (used for evaluation submission)
-export const EVENT_API_URL =
-  process.env.REACT_APP_EVENT_API_URL || "https://eventretrieval.oj.io.vn";
-
 // ═══════════════════════════════════════════════════════════════════════
 // MOCK MODE - Set to false when retrieval backend is working
 // This only affects retrieval BE, Honey BE (Megumin AI) remains real
@@ -136,25 +132,6 @@ const generateMockSearchResults = (query: string, mode: ClusterMode): SearchResp
 // Helper: Simulate network delay
 const mockDelay = (ms: number = 300) => new Promise((r) => setTimeout(r, ms));
 
-export interface LoginResponse {
-  id: string;
-  username: string;
-  role: string;
-  sessionId: string;
-}
-
-export const loginToEventApi = async (
-  username: string,
-  password: string
-): Promise<LoginResponse> => {
-  const res = await axios.post(
-    `${EVENT_API_URL}/api/v2/login`,
-    { username, password },
-    { headers: { "Content-Type": "application/json" } }
-  );
-  return res.data as LoginResponse;
-};
-
 export const searchClusters = async (
   query: string,
   mode: ClusterMode,
@@ -179,69 +156,6 @@ export const searchClusters = async (
   console.log(payload);
   const res = await axios.post(`${BASE_URL}/search/text`, payload);
   return res.data as SearchResponse;
-};
-
-/**
- * Fetch list of evaluations for a given sessionId from the event retrieval API
- * The backend expects GET /api/v2/client/evaluation/list with param { session }
- */
-export const getEvaluations = async (session: string): Promise<any> => {
-  const res = await axios.get(
-    `${EVENT_API_URL}/api/v2/client/evaluation/list`,
-    {
-      params: { session },
-    }
-  );
-  return res.data;
-};
-
-/**
- * Submit an evaluation result to the event retrieval API
- * POST /api/v2/submit/{evaluationID}
- * The API expects a JSON body containing at least { session: "<sessionId>", answerSets: [...] }
- */
-export const submitEvaluation = async (
-  evaluationId: string,
-  session: string,
-  body: any
-): Promise<any> => {
-  const payload = {
-    ...body,
-  };
-  const res = await axios.post(
-    `${EVENT_API_URL}/api/v2/submit/${evaluationId}?session=${session}`,
-    payload,
-    {
-      headers: { "Content-Type": "application/json" },
-    }
-  );
-  return res.data;
-};
-
-/**
- * Push submission result to the event retrieval API
- * GET /submit/push
- * Push the submission result after receiving a successful response
- * @param evaluationId - The evaluation ID
- * @param session - The session ID
- * @param answer - JSON string of the submission payload
- * @param status - Submission status: "CORRECT" or "WRONG"
- */
-export const pushSubmission = async (
-  evaluationId: string,
-  session: string,
-  answer: string,
-  status: "CORRECT" | "WRONG" | "PARTIALLY_CORRECT"
-): Promise<any> => {
-  const res = await axios.get(`${BASE_URL}/submit/push`, {
-    params: {
-      evaluation_id: evaluationId,
-      session: session,
-      answer: answer,
-      status: status,
-    },
-  });
-  return res.data;
 };
 
 export const getListClusterImages = async (cluster: ClusterResult) => {

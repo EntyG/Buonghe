@@ -9,7 +9,6 @@ This document describes all API endpoints required by the frontend application.
 | `REACT_APP_BASE_URL` | `http://14.225.217.119:8082` | Retrieval Backend URL |
 | `REACT_APP_BASE_IMAGE_URL` | `http://14.225.217.119:8081` | Image Server URL |
 | `REACT_APP_HONEY_BE_URL` | `http://localhost:3001` | Honey Backend (Megumin AI + TTS) |
-| `REACT_APP_EVENT_API_URL` | `https://eventretrieval.oj.io.vn` | Event Retrieval API (evaluation) |
 
 ---
 
@@ -194,83 +193,9 @@ This document describes all API endpoints required by the frontend application.
 
 ---
 
-## 3. Event Retrieval API (EVENT_API_URL) - Competition
+## 3. Image Server (BASE_IMAGE_URL)
 
-### 3.1 Login
-**Endpoint:** `POST /api/v2/login`
-
-**Request:**
-```json
-{
-  "username": "team_username",
-  "password": "team_password"
-}
-```
-
-**Response:**
-```json
-{
-  "id": "user_id",
-  "username": "team_username",
-  "role": "participant",
-  "sessionId": "session_token"
-}
-```
-
----
-
-### 3.2 Get Evaluations
-**Endpoint:** `GET /api/v2/client/evaluation/list`
-
-**Query Parameters:**
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `session` | string | Yes | Session token from login |
-
-**Response:**
-```json
-{
-  "evaluations": [
-    {
-      "id": "eval_id",
-      "name": "Evaluation Name",
-      "status": "active"
-    }
-  ]
-}
-```
-
----
-
-### 3.3 Submit Evaluation
-**Endpoint:** `POST /api/v2/submit/{evaluationId}?session={sessionToken}`
-
-**Request:**
-```json
-{
-  "answerSets": [
-    {
-      "answers": [
-        { "text": "L01_V001-001234" }
-      ]
-    }
-  ]
-}
-```
-
-**Response:**
-```json
-{
-  "status": "CORRECT | WRONG | PARTIALLY_CORRECT",
-  "score": 100
-}
-```
-
----
-
-## 4. Image Server (BASE_IMAGE_URL)
-
-### 4.1 Get Frame Image
+### 3.1 Get Frame Image
 **URL Pattern:** `{BASE_IMAGE_URL}/{path}{id}.webp`
 
 **Example:** `http://14.225.217.119:8081/L01_V001/001234.webp`
