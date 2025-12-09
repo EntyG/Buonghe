@@ -37,6 +37,7 @@ import {
   smartSearch,
   MeguminSmartChatResponse,
   SearchType,
+  HONEY_BE_URL,
 } from '../../api';
 import { generateBotResponse, generateGreeting } from '../../utils/botPersonality';
 import { fileToStoredImage, storedImageToFile } from '../../utils/imageUtils';
@@ -253,7 +254,11 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
 
       // Play Megumin's voice if available
       if (meguminData.audio?.url && !meguminData.useFallbackAudio) {
-        playMeguminAudio(meguminData.audio.url, meguminData.avatar?.lipSync);
+        // Audio URL from honey-be is relative, prepend the server URL
+        const fullAudioUrl = meguminData.audio.url.startsWith('http') 
+          ? meguminData.audio.url 
+          : `${HONEY_BE_URL}${meguminData.audio.url}`;
+        playMeguminAudio(fullAudioUrl, meguminData.avatar?.lipSync);
       }
 
       // Get suggestions only if it was a search query

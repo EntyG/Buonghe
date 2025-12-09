@@ -212,20 +212,19 @@ router.post('/chat/smart', async (req, res, next) => {
     console.log(`🎀 Megumin Smart Chat: "${message}"`);
     console.log(`🎀 ═══════════════════════════════════════\n`);
 
-    // Step 1: Classify query and generate response using Gemini
+    // Step 1: Classify query and generate response using Gemini (includes Japanese translation)
     const llmResult = await geminiService.classifyAndRespond(
       message,
       sessionId
     );
 
-    // Step 2: Generate voice using Gemini TTS
+    // Step 2: Generate voice using ElevenLabs TTS with pre-translated Japanese
     let ttsResult;
     let useFallback = false;
     
     try {
       ttsResult = await geminiService.textToSpeech(llmResult.text, {
-        voice: 'en-US-Neural2-F',
-        pitch: 2.0
+        japaneseText: llmResult.textJapanese  // Use pre-translated Japanese from LLM response
       });
       useFallback = ttsResult.useFallback || false;
     } catch (ttsError) {

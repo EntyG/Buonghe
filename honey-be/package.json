@@ -10,6 +10,7 @@
     "find-voices": "node scripts/find-voices.js"
   },
   "dependencies": {
+    "@elevenlabs/elevenlabs-js": "^2.27.0",
     "@google/generative-ai": "^0.24.1",
     "axios": "^1.7.7",
     "cors": "^2.8.5",

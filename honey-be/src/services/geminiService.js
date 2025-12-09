@@ -1,9 +1,10 @@
 /**
- * Gemini AI Service - Unified LLM + TTS using Google's Gemini API
- * Replaces both Groq (LLM) and Typecast (TTS)
+ * Gemini AI Service - LLM using Google's Gemini API + ElevenLabs TTS
+ * Uses Gemini for LLM and ElevenLabs for Japanese TTS
  */
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -15,17 +16,29 @@ const __dirname = path.dirname(__filename);
 class GeminiService {
   constructor() {
     this.client = null;
+    this.elevenLabs = null;
     this.conversationHistory = new Map();
   }
 
   /**
-   * Initialize Gemini client
+   * Initialize Gemini and ElevenLabs clients
    */
   init() {
     if (!process.env.GEMINI_API_KEY) {
       throw new Error('GEMINI_API_KEY is not configured');
     }
     this.client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    
+    // Initialize ElevenLabs if API key is present
+    if (process.env.ELEVENLABS_API_KEY) {
+      this.elevenLabs = new ElevenLabsClient({
+        apiKey: process.env.ELEVENLABS_API_KEY
+      });
+      console.log('✅ ElevenLabs TTS initialized');
+    } else {
+      console.warn('⚠️ ELEVENLABS_API_KEY not set - TTS will use fallback');
+    }
+    
     return this;
   }
 
@@ -170,7 +183,7 @@ Remember: You're Megumin, their supportive anime companion who lives in their ap
     const {
       model = 'gemini-2.5-flash',
       temperature = 0.3,
-      maxTokens = 512
+      maxTokens = 1024  // Increased to prevent truncation (need room for Japanese translation)
     } = options;
 
     try {
@@ -256,7 +269,8 @@ You must output your response in the following block format exactly. Do not use 
 [TEMPORAL_NOW: the MAIN event/scene OR "none"]
 [TEMPORAL_AFTER: scene description AFTER the event OR "none"]
 [MOOD: happy/excited/thinking/neutral/shy/concerned/dramatic/smug]
-[RESPONSE: Your in-character response as Megumin]
+[RESPONSE: Your in-character response as Megumin in English]
+[RESPONSE_JP: Japanese translation of your response - natural spoken Japanese, keep anime personality]
 
 Response Guidelines for Megumin:
 
@@ -280,6 +294,7 @@ Output:
 [TEMPORAL_AFTER: none]
 [MOOD: excited]
 [RESPONSE: Waga na wa Megumin! You seek the ultimate magic? An excellent choice! Witness as I conjure the scene of destruction you desire! Explosion~!]
+[RESPONSE_JP: 我が名はめぐみん！究極の魔法を求めるとは、素晴らしい選択だ！望みの破壊シーンを召喚してみせよう！エクスプロージョン〜！]
 
 User: "Show me what happens after the goal is scored."
 Output:
@@ -291,6 +306,7 @@ Output:
 [TEMPORAL_AFTER: soccer player celebration crowd cheering]
 [MOOD: dramatic]
 [RESPONSE: Heh, you wish to peer into the flow of time itself? Very well! I shall reveal the moments following the triumph. Don't blink, or you'll miss my brilliance!]
+[RESPONSE_JP: ふん、時の流れを覗きたいと？よかろう！勝利の後の瞬間を見せてやる。瞬きするなよ、私の輝きを見逃すぞ！]
 
 User: "You are very cute today."
 Output:
@@ -302,6 +318,7 @@ Output:
 [TEMPORAL_AFTER: none]
 [MOOD: shy]
 [RESPONSE: C-Cute!? I am the terrifying Arch Wizard of the Crimson Demon Clan! D-don't mock me... though I suppose I will accept the compliment. Hmph!]
+[RESPONSE_JP: か、可愛い！？私は紅魔族の恐ろしきアークウィザードだぞ！からかうな...まあ、褒め言葉は受け取ってやる。ふん！]
 
 User: "tìm video có mèo đang ngủ" (Find video of cat sleeping)
 Output:
@@ -312,7 +329,8 @@ Output:
 [TEMPORAL_NOW: none]
 [TEMPORAL_AFTER: none]
 [MOOD: happy]
-[RESPONSE: A quest for a beast similar to my dark familiar, Chomusuke? I shall locate this slumbering creature for you. It better not be cuter than my cat, though!]`
+[RESPONSE: A quest for a beast similar to my dark familiar, Chomusuke? I shall locate this slumbering creature for you. It better not be cuter than my cat, though!]
+[RESPONSE_JP: 私の使い魔ちょむすけに似た獣を探すのか？眠っている生き物を見つけてやろう。私の猫より可愛くないといいけどね！]`
 
       const geminiModel = this.client.getGenerativeModel({ 
         model,
@@ -351,12 +369,15 @@ Output:
       const moodMatch = responseText.match(/\[MOOD:\s*(\w+)\]/i);
       const responseMatch = responseText.match(/\[RESPONSE:\s*([^\]]+(?:\][^\[]*)*)\]/i) || 
                            responseText.match(/\[RESPONSE:\s*([\s\S]*?)(?:\[|$)/i);
+      const responseJpMatch = responseText.match(/\[RESPONSE_JP:\s*([^\]]+(?:\][^\[]*)*)\]/i) ||
+                             responseText.match(/\[RESPONSE_JP:\s*([\s\S]*?)(?:\[|$)/i);
 
       const intent = intentMatch ? intentMatch[1].toUpperCase() : 'CHAT';
       const searchType = searchTypeMatch ? searchTypeMatch[1].toUpperCase() : 'NONE';
       const searchQuery = searchQueryMatch ? searchQueryMatch[1].trim() : 'none';
       const mood = moodMatch ? moodMatch[1].toLowerCase() : 'neutral';
       let responseContent = responseMatch ? responseMatch[1].trim() : 'Let me help you with that!';
+      let responseJapanese = responseJpMatch ? responseJpMatch[1].trim() : null;
 
       // Parse temporal components
       let temporalQuery = null;
@@ -375,8 +396,11 @@ Output:
         console.log('⏰ Temporal query parsed:', temporalQuery);
       }
 
-      // Clean up response
+      // Clean up responses
       responseContent = responseContent.replace(/\]$/, '').trim();
+      if (responseJapanese) {
+        responseJapanese = responseJapanese.replace(/\]$/, '').trim();
+      }
 
       const isSearchQuery = intent === 'SEARCH' && searchQuery.toLowerCase() !== 'none';
 
@@ -394,7 +418,8 @@ Output:
         isSearchQuery,
         searchQuery: isSearchQuery ? searchQuery : 'N/A',
         temporalQuery: temporalQuery,
-        mood
+        mood,
+        hasJapanese: !!responseJapanese
       });
 
       return {
@@ -403,6 +428,7 @@ Output:
         searchQuery: isSearchQuery ? searchQuery : null,
         temporalQuery: temporalQuery,  // null for non-temporal searches
         text: responseContent,
+        textJapanese: responseJapanese,  // Japanese translation for TTS
         mood,
         intent,
         rawResponse: responseText
@@ -414,85 +440,110 @@ Output:
   }
 
   /**
-   * Text-to-Speech using Gemini's TTS (via Google Cloud TTS API)
-   * Note: Currently Gemini doesn't have built-in TTS, so we use Google Cloud TTS
-   * Or fall back to browser speech synthesis
+   * Translate text to Japanese using Gemini
+   */
+  async translateToJapanese(text) {
+    if (!this.client) {
+      this.init();
+    }
+
+    try {
+      console.log('🇯🇵 Translating to Japanese...');
+      
+      const geminiModel = this.client.getGenerativeModel({ 
+        model: 'gemini-2.5-flash',
+        generationConfig: {
+          temperature: 0.3,
+          maxOutputTokens: 256
+        }
+      });
+
+      const prompt = `Translate the following text to natural spoken Japanese. 
+Keep the anime character personality and cute expressions.
+Only output the Japanese translation, nothing else.
+
+Text: "${text}"
+
+Japanese:`;
+
+      const result = await geminiModel.generateContent(prompt);
+      const japaneseText = result.response.text().trim();
+      
+      console.log(`📝 Original: "${text}"`);
+      console.log(`🇯🇵 Japanese: "${japaneseText}"`);
+      
+      return japaneseText;
+    } catch (error) {
+      console.error('❌ Translation Error:', error);
+      // Return original text if translation fails
+      return text;
+    }
+  }
+
+  /**
+   * Text-to-Speech using ElevenLabs with Japanese voice
+   * Uses pre-translated Japanese text if available, otherwise translates
    */
   async textToSpeech(text, options = {}) {
     const {
-      voice = 'en-US-Neural2-F', // Female neural voice
-      languageCode = 'en-US',
-      speakingRate = 1.0,
-      pitch = 2.0, // Slightly higher for anime-style voice
+      voiceId = 'KgETZ36CCLD1Cob4xpkv', // ElevenLabs voice ID
+      modelId = 'eleven_flash_v2_5', // Flash model - 50% faster, supports Japanese
+      japaneseText = null, // Pre-translated Japanese text (optimization)
       outputDir = path.join(__dirname, '../../public/audio')
     } = options;
 
     try {
-      console.log('🎤 Generating speech with Google Cloud TTS...');
+      console.log('🎤 Generating speech with ElevenLabs...');
 
       // Ensure output directory exists
       if (!fs.existsSync(outputDir)) {
         fs.mkdirSync(outputDir, { recursive: true });
       }
 
-      // Check if Google Cloud TTS is configured
-      if (!process.env.GOOGLE_CLOUD_TTS_KEY && !process.env.GEMINI_API_KEY) {
-        console.log('⚠️ No TTS API configured, returning null for client-side TTS');
+      // Check if ElevenLabs is configured
+      if (!this.elevenLabs) {
+        console.log('⚠️ ElevenLabs not configured, returning null for client-side TTS');
         return {
           audioUrl: null,
           duration: this.estimateDuration(text),
           useFallback: true,
-          text
+          text,
+          japaneseText: null
         };
       }
 
-      // Use Google Cloud Text-to-Speech API
-      const ttsApiKey = process.env.GOOGLE_CLOUD_TTS_KEY || process.env.GEMINI_API_KEY;
-      
-      const response = await fetch(
-        `https://texttospeech.googleapis.com/v1/text:synthesize?key=${ttsApiKey}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            input: { text },
-            voice: {
-              languageCode,
-              name: voice,
-            },
-            audioConfig: {
-              audioEncoding: 'MP3',
-              speakingRate,
-              pitch,
-            },
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const error = await response.text();
-        console.error('❌ Google TTS Error:', error);
-        // Fall back to client-side TTS
-        return {
-          audioUrl: null,
-          duration: this.estimateDuration(text),
-          useFallback: true,
-          text
-        };
+      // Use pre-translated Japanese text if available, otherwise translate
+      let ttsText = japaneseText;
+      if (!ttsText) {
+        console.log('⚠️ No pre-translated Japanese text, translating now...');
+        ttsText = await this.translateToJapanese(text);
+      } else {
+        console.log('✅ Using pre-translated Japanese text');
       }
 
-      const data = await response.json();
-      const audioContent = data.audioContent;
+      // Generate audio using ElevenLabs
+      // API: textToSpeech.convert(voiceId, options)
+      const audioStream = await this.elevenLabs.textToSpeech.convert(voiceId, {
+        text: ttsText,
+        modelId: modelId,
+        outputFormat: 'mp3_44100_128'
+      });
+
+      // Collect audio chunks
+      const chunks = [];
+      for await (const chunk of audioStream) {
+        chunks.push(chunk);
+      }
+      const audioBuffer = Buffer.concat(chunks);
 
       // Save audio file
-      const filename = `gemini-tts-${uuidv4()}.mp3`;
+      const filename = `elevenlabs-tts-${uuidv4()}.mp3`;
       const filepath = path.join(outputDir, filename);
       
-      fs.writeFileSync(filepath, Buffer.from(audioContent, 'base64'));
+      fs.writeFileSync(filepath, audioBuffer);
 
-      const duration = this.estimateDuration(text);
+      // Estimate duration based on Japanese text
+      const duration = this.estimateDuration(ttsText, true);
 
       console.log(`✅ Audio generated: ${filename} (${duration.toFixed(1)}s)`);
 
@@ -501,25 +552,33 @@ Output:
         localPath: filepath,
         duration,
         useFallback: false,
-        text
+        text,
+        japaneseText: ttsText
       };
     } catch (error) {
-      console.error('❌ TTS Error:', error);
+      console.error('❌ ElevenLabs TTS Error:', error);
       // Fall back to client-side TTS
       return {
         audioUrl: null,
         duration: this.estimateDuration(text),
         useFallback: true,
-        text
+        text,
+        japaneseText: null
       };
     }
   }
 
   /**
    * Estimate speech duration based on text length
+   * Japanese is spoken at ~300 characters per minute
    */
-  estimateDuration(text) {
-    // Average speaking rate: ~150 words per minute = 2.5 words per second
+  estimateDuration(text, isJapanese = false) {
+    if (isJapanese) {
+      // Japanese: ~5 characters per second
+      const chars = text.length;
+      return Math.max(1, chars / 5);
+    }
+    // English: ~150 words per minute = 2.5 words per second
     const words = text.split(/\s+/).length;
     return Math.max(1, words / 2.5);
   }

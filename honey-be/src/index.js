@@ -29,6 +29,37 @@ const publicAudioDir = path.join(__dirname, '../public/audio');
   }
 });
 
+// Cleanup old audio files (older than 1 hour)
+const cleanupOldAudioFiles = () => {
+  const maxAge = 60 * 60 * 1000; // 1 hour in ms
+  const now = Date.now();
+  
+  try {
+    const files = fs.readdirSync(publicAudioDir);
+    let cleaned = 0;
+    
+    files.forEach(file => {
+      const filePath = path.join(publicAudioDir, file);
+      const stats = fs.statSync(filePath);
+      
+      if (now - stats.mtimeMs > maxAge) {
+        fs.unlinkSync(filePath);
+        cleaned++;
+      }
+    });
+    
+    if (cleaned > 0) {
+      console.log(`🧹 Cleaned up ${cleaned} old audio files`);
+    }
+  } catch (err) {
+    console.error('Audio cleanup error:', err.message);
+  }
+};
+
+// Run cleanup on startup and every 30 minutes
+cleanupOldAudioFiles();
+setInterval(cleanupOldAudioFiles, 30 * 60 * 1000);
+
 // Middleware
 app.use(cors({
   origin: process.env.FRONTEND_URL || ['http://localhost:3000', 'http://localhost:5173'],
