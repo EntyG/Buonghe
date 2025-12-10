@@ -367,7 +367,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
           playMikuAudio(fullAudioUrl, lipSyncData);
         }
       } catch (reactionError) {
-        console.warn('⚠️ Could not get miku reaction, using fallback:', reactionError);
+        console.warn('⚠️ Could not get Miku reaction, using fallback:', reactionError);
         // Fallback to static response if miku is unavailable
         const fallback = generateBotResponse('visual', totalImages, res.results.length);
         botText = fallback.text;
@@ -514,7 +514,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
               }}
             >
               <CircularProgress size={48} />
-              <Box sx={{ mt: 2, color: 'text.secondary' }}>Loading miku...</Box>
+              <Box sx={{ mt: 2, color: 'text.secondary' }}>Loading Miku...</Box>
             </Box>
           )}
           <Live2DCanvas
@@ -526,7 +526,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
         </Live2DContainer>
         
         <CharacterInfo>
-          <h3>miku</h3>
+          <h3>Hatsune Miku</h3>
           <p>Your Movie Retrieval Assistant</p>
         </CharacterInfo>
       </Live2DPanel>
