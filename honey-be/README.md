@@ -1,46 +1,24 @@
-# 🎀 Honey Backend - miku Virtual Assistant
 
-Backend server for **miku**, an anime-style virtual assistant who motivates healthy eating habits. Built with Groq AI (STT + LLM) and [Typecast.ai](https://typecast.ai/) (TTS).
+# 🎀 Honey Backend - Miku Virtual Assistant
 
-## 🌸 Meet miku
+Backend server for **Miku**, an anime-style virtual assistant powered by Google Gemini (LLM) and ElevenLabs (TTS).
 
-> *miku is an interactive anime-style virtual assistant designed to motivate healthy eating habits. She lives in a charming "living room" interface and reacts to the user's dietary choices with personality-driven responses. Using AI, miku praises good meals and gently scolds unhealthy ones, all while reflecting mood changes through animated expressions.*
+## 🌸 Meet Miku
 
-## 🔄 Complete Pipeline Flow
+> *Miku is an interactive anime-style virtual assistant designed for conversational AI and video search. She reacts to user queries with personality-driven responses, mood changes, and animated expressions.*
+
+## 🔄 Pipeline Flow
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    USER SPEAKS TO YUKI                       │
-└─────────────────────┬───────────────────────────────────────┘
-                      ▼
-┌─────────────────────────────────────────────────────────────┐
-│     STEP 1: Groq Whisper (Speech-to-Text)                   │
-│     User's voice → Text transcription                       │
-└─────────────────────┬───────────────────────────────────────┘
-                      ▼
-┌─────────────────────────────────────────────────────────────┐
-│     STEP 2: Groq LLM (Character Response)                   │
-│     Generate miku's personality-driven response             │
-│     Model: LLaMA 3.3 70B Versatile                          │
-└─────────────────────┬───────────────────────────────────────┘
-                      ▼
-┌─────────────────────────────────────────────────────────────┐
-│     STEP 3: Typecast.ai (Text-to-Speech)                    │
-│     miku's response → Anime voice (Miu Kobayashi)           │
-│     Returns: Audio URL + Lip-sync data                      │
-└─────────────────────┬───────────────────────────────────────┘
-                      ▼
-┌─────────────────────────────────────────────────────────────┐
-│     STEP 4: Avatar Animation Data                           │
-│     - Lip sync visemes (Live2D/VRM compatible)              │
-│     - Expression/mood (happy, pouty, concerned, etc.)       │
-│     - Gestures (wave, nod, head_tilt, etc.)                 │
-│     - Eye blinks                                             │
-└─────────────────────┬───────────────────────────────────────┘
-                      ▼
-┌─────────────────────────────────────────────────────────────┐
-│     Frontend plays audio + animates Live2D/VRM avatar       │
-└─────────────────────────────────────────────────────────────┘
+User message (text/voice/image)
+  ↓
+Google Gemini (LLM) - Classifies query, generates Miku's response, mood, and search type
+  ↓
+ElevenLabs (TTS) - Synthesizes Japanese voice for Miku's response
+  ↓
+Avatar Animation Data - Lip sync, mood, gestures, body movement
+  ↓
+Frontend - Plays audio and animates Live2D Miku avatar
 ```
 
 ## 🚀 Quick Start
@@ -104,174 +82,21 @@ npm run dev
 npm start
 ```
 
+
 ## 📡 API Endpoints
 
-### 🎤 Voice Discovery
+| Endpoint                              | Description                                                                                   |
+|----------------------------------------|-----------------------------------------------------------------------------------------------|
+| `POST /api/speech/chat/smart`          | Smart chat: Classifies query, returns Miku response, and search/temporal/filter/image queries |                                        |
+| `POST /api/speech/tts`                 | Text-to-speech (Japanese, ElevenLabs voice, returns audio URL and lip sync)                   |
+| `POST /api/speech/react/visual`        | Miku's reaction to visual search results (hardcoded, TTS, avatar animation)                   |
+| `DELETE /api/speech/audio/:filename`   | Delete generated audio file after playback                                                    |
+| `GET /api/health`                      | Health check for backend and API keys                                                         |
 
-| Endpoint | Description |
-|----------|-------------|
-| `GET /api/speech/voices` | List all available voices |
-| `GET /api/speech/voices?model=ssfm-v21` | Filter by model |
-| `GET /api/speech/voices/anime` | Get anime/Japanese voices |
-| `GET /api/speech/voices/search/:name` | Search voice by name |
-| `GET /api/speech/voices/miu` | Find Miu Kobayashi |
-| `GET /api/speech/voices/:id` | Get voice details by ID |
-
-**Example: Find Miu Kobayashi**
-```bash
-curl http://localhost:3001/api/speech/voices/miu
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Found Miu Kobayashi!",
-  "data": {
-    "id": "tc_62a8975e695ad26f7fb514d1",
-    "name": "Miu Kobayashi",
-    "language": "ja-JP",
-    "emotions": ["normal", "happy", "sad", "angry"]
-  },
-  "usage": "Set TYPECAST_ACTOR_ID=tc_62a8975e695ad26f7fb514d1 in your .env file"
-}
-```
-
-### Health Check
-```
-GET /api/health
-```
-
-### 🎀 Main Chat Endpoint (Recommended)
-Talk to miku with voice input:
-```
-POST /api/speech/chat
-Content-Type: multipart/form-data
-
-Body:
-- audio: Audio file (user's voice)
-- language: "en" | "ja" | "vi" (default: "en")
-- sessionId: Session ID for conversation history
-- actorId: Typecast actor ID (Miu Kobayashi)
-- context: Optional context for the conversation
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "userMessage": "I just had a salad for lunch!",
-    "yukiResponse": {
-      "text": "Sugoi~! A salad for lunch? That's amazing! I'm so proud of you! 🥗✨",
-      "mood": "excited"
-    },
-    "audio": {
-      "url": "https://typecast.ai/audio/...",
-      "duration": 3500
-    },
-    "avatar": {
-      "expression": { "type": "excited", "intensity": 1.0 },
-      "lipSync": { "visemes": [...], "mouthShapes": {...} },
-      "gestures": [{ "type": "bounce", "time": 0, "duration": 500 }],
-      "eyeBlinks": [...],
-      "bodyMovement": { "bounce": true, "sway": true, "intensity": 0.6 }
-    },
-    "sessionId": "abc123"
-  }
-}
-```
-
-### 💬 Text Chat
-Chat with miku via text (no voice input):
-```
-POST /api/speech/chat/text
-Content-Type: application/json
-
-Body:
-{
-  "message": "I'm thinking of having pizza for dinner",
-  "sessionId": "optional",
-  "actorId": "miu_kobayashi_id",
-  "context": "optional context"
-}
-```
-
-### 🍽️ Meal Reaction
-Get miku's reaction to a meal:
-```
-POST /api/speech/meal-reaction
-Content-Type: application/json
-
-Body:
-{
-  "mealDescription": "Pepperoni pizza with extra cheese",
-  "isHealthy": false,
-  "calories": 450,
-  "nutrients": "High fat, moderate protein",
-  "actorId": "miu_kobayashi_id"
-}
-```
-
-### Other Endpoints
-- `POST /api/speech/stt` - Speech-to-Text only
-- `POST /api/speech/tts` - Text-to-Speech only
-- `GET /api/speech/actors` - List Typecast voices
-- `DELETE /api/speech/history/:sessionId` - Clear chat history
-
-## 🔌 WebSocket API
-
-Connect to `ws://localhost:3001/ws/speech`
-
-### Commands
-
-#### Start Voice Recording
-```json
-{
-  "type": "start_recording",
-  "language": "en"
-}
-```
-
-#### Stop Recording & Get miku's Response
-```json
-{
-  "type": "stop_recording",
-  "actorId": "miu_kobayashi_id",
-  "context": "optional context"
-}
-```
-
-#### Text Chat (WebSocket)
-```json
-{
-  "type": "chat_text",
-  "message": "Hello miku!",
-  "actorId": "miu_kobayashi_id"
-}
-```
-
-#### Meal Reaction (WebSocket)
-```json
-{
-  "type": "meal_reaction",
-  "mealDescription": "Grilled chicken with vegetables",
-  "isHealthy": true,
-  "calories": 350,
-  "actorId": "miu_kobayashi_id"
-}
-```
-
-### Response Events
-
-- `connected` - Connection established with miku
-- `recording_started` - miku is listening
-- `processing` - Processing stage (stt/thinking/tts/complete)
-- `user_message` - Transcribed user message
-- `yuki_thinking` - miku's response text (before voice)
-- `yuki_response` - Complete response with audio and avatar data
-- `meal_reaction` - miku's meal reaction
-- `error` - Error occurred
+All endpoints return structured data for frontend use, including Miku's response, mood, audio, and avatar animation data.
+The main endpoint for search classification and Miku response is `/api/speech/chat/smart`.
+TTS uses ElevenLabs and returns a temporary audio file URL.
+Visual search reactions and audio cleanup are supported.
 
 ## 😊 miku's Moods
 
@@ -338,32 +163,26 @@ miku expresses different moods based on the conversation:
 }
 ```
 
-## 🔑 Getting API Keys
 
-### Groq API
-1. Visit [console.groq.com](https://console.groq.com)
-2. Create an account and generate an API key
-3. Used for: Speech-to-Text (Whisper) + LLM (LLaMA)
+## 🔑 Environment Variables
 
-### Typecast.ai API
-1. Visit [typecast.ai](https://typecast.ai/)
-2. Sign up for a developer account
-3. Get your API key and find **Miu Kobayashi** actor ID
-4. Used for: Anime voice synthesis
+See `.env.example` for required configuration:
+- `GEMINI_API_KEY` (Google Gemini)
+- `ELEVENLABS_API_KEY` (ElevenLabs TTS)
+- `PORT` (default: 3001)
+- `FRONTEND_URL` (CORS)
+
 
 ## 📁 Project Structure
 
 ```
 honey-be/
 ├── src/
-│   ├── index.js                 # Main server + WebSocket
+│   ├── index.js                 # Main server
 │   ├── routes/
 │   │   └── speech.js            # REST API routes
 │   ├── services/
-│   │   ├── groqService.js       # Groq STT + LLM (miku's brain)
-│   │   └── typecastService.js   # Typecast TTS (miku's voice)
-│   └── websocket/
-│       └── speechHandler.js     # Real-time chat handler
+│   │   └── MikuService.js       # Gemini LLM + ElevenLabs TTS
 ├── public/audio/                # Generated audio cache
 ├── temp/                        # Temporary processing files
 ├── package.json
@@ -371,31 +190,10 @@ honey-be/
 └── README.md
 ```
 
+
 ## 🛠 Tech Stack
 
 - **Runtime**: Node.js + Express
-- **STT**: Groq Whisper Large V3 Turbo
-- **LLM**: Groq LLaMA 3.3 70B Versatile
-- **TTS**: [Typecast.ai](https://typecast.ai/) (Miu Kobayashi)
-- **WebSocket**: ws
-- **Avatar**: Live2D / VRM compatible data
-
-## 📝 Example Conversation
-
-```
-User: "I just had a burger and fries for lunch"
-
-miku (concerned): [concerned] Oh no~ A burger and fries? 
-That's a lot of grease, you know... I'm a bit worried about you! 
-Maybe try adding a side salad next time? Ganbatte!
-
-User: "Okay, I'll have a salad for dinner"
-
-miku (happy): [happy] Yay~! That's what I like to hear! 
-A salad for dinner sounds perfect! I knew you could make better choices! 
-I'm so proud of you! ✨
-```
-
-## 📝 License
-
-MIT
+- **LLM**: Google Gemini
+- **TTS**: ElevenLabs (Japanese voice)
+- **Avatar**: Live2D compatible data

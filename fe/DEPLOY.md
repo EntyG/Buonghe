@@ -29,7 +29,7 @@ Lần đầu tiên sẽ hỏi:
 - **Set up and deploy?** → Y
 - **Which scope?** → Chọn tài khoản của bạn
 - **Link to existing project?** → N (nếu lần đầu)
-- **What's your project's name?** → Nhập tên project (ví dụ: focus-on-fun-aic-fe)
+- **What's your project's name?** → Nhập tên project (ví dụ: buonghe-miku-fe)
 - **In which directory is your code located?** → . (current directory)
 - **Override settings?** → N (dùng vercel.json)
 

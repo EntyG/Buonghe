@@ -1,8 +1,8 @@
-# DEVELOPER.md: Focus-on-Fun-AC-FE Technical Documentation
+# DEVELOPER.md: Buonghe Technical Documentation (Miku Edition)
 
 ## 1. Project Overview
 
-- Objective: Frontend for a visual and temporal search system (AI Challenge). It provides a conversational text-based search experience over frames/clusters of videos, lets users switch between clustering modes (moment vs. video), choose the retrieval model (CLIP vs. SigLip2), preview frames, and jump to the source video/time.
+- Objective: Frontend for a visual and temporal search system with Hatsune Miku as your AI assistant. It provides a conversational text-based search experience over frames/clusters of videos, lets users switch between clustering modes (moment vs. video), choose the retrieval model (CLIP vs. SigLip2), preview frames, and jump to the source video/time.
 - Core Features (Current):
   - Text search with chat-like history and re-search capability
   - Visual search with image paste support
@@ -14,6 +14,7 @@
   - Image/frame preview modal with quick open to video at timestamp
   - Nearby/related frames retrieval (timeline) for a selected frame
   - Rephrase suggestions for user prompts
+  - **Miku Live2D Avatar**: Animated Miku character with lip-sync and expressions
 
 ## 2. Tech Stack & Libraries
 

@@ -1,6 +1,6 @@
 # API Endpoints Documentation
 
-This document describes all API endpoints required by the frontend application.
+This document describes all API endpoints required by the frontend application, now featuring Miku as your AI assistant.
 
 ## Environment Variables
 
@@ -8,7 +8,7 @@ This document describes all API endpoints required by the frontend application.
 |----------|---------|-------------|
 | `REACT_APP_BASE_URL` | `http://14.225.217.119:8082` | Retrieval Backend URL |
 | `REACT_APP_BASE_IMAGE_URL` | `http://14.225.217.119:8081` | Image Server URL |
-| `REACT_APP_HONEY_BE_URL` | `http://localhost:3001` | Honey Backend (miku AI + TTS) |
+| `REACT_APP_HONEY_BE_URL` | `http://localhost:3001` | Honey Backend (Miku AI + TTS) |
 
 ---
 
@@ -93,23 +93,6 @@ This document describes all API endpoints required by the frontend application.
 
 **Response:** Same as Text Search (results grouped as scenes with 3 frames each)
 
----
-
-### 1.4 Relevance Feedback
-**Endpoint:** `POST /search/feedback`
-
-**Request:**
-```json
-{
-  "state_id": "current_search_state_id",
-  "mode": "moment",
-  "collection": "siglip2_production_1152",
-  "positive": ["image_id_1", "image_id_2"],
-  "negative": ["image_id_3"]
-}
-```
-
-**Response:** Same as Text Search (refined results)
 
 ---
 

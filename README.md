@@ -1,6 +1,6 @@
-# Buonghe - Video Retrieval with miku AI Assistant
+# Buonghe - Intelligent Virtual Assistant for Movie Retrieval
 
-A video retrieval application with an anime-style AI assistant (miku) powered by Google Gemini.
+A video retrieval application featuring Hatsune Miku as your anime-style AI assistant, powered by Google Gemini.
 
 ## 🏗️ Project Structure
 
@@ -8,7 +8,7 @@ A video retrieval application with an anime-style AI assistant (miku) powered by
 Buonghe/
 ├── fe/          # React Frontend (TypeScript)
 ├── be/          # Python Retrieval Backend (FastAPI)
-├── honey-be/    # Node.js AI Backend (Gemini LLM + TTS)
+├── honey-be/    # Node.js AI Backend (Gemini LLM + Elevenlabs TTS)
 └── README.md    # This file
 ```
 
@@ -18,6 +18,7 @@ Buonghe/
 - Node.js 18+
 - Python 3.10+
 - Gemini API Key ([Get one here](https://makersuite.google.com/app/apikey))
+- Elevenlabs API Key ([Get one here](https://elevenlabs.io/app/developers/api-keys))
 
 ### 1. Frontend (React)
 ```bash
@@ -31,8 +32,8 @@ npm start
 ```bash
 cd honey-be
 npm install
-cp env.example .env  # Add your GEMINI_API_KEY
-node src/index.js
+cp .env.example .env  # Add your GEMINI_API_KEY and ELEVENLABS_API_KEY
+npm start
 ```
 
 ### 3. Retrieval Backend (be)
@@ -45,31 +46,29 @@ python server.py
 
 ## 🎭 Features
 
-- **miku AI Assistant**: Anime-style virtual assistant powered by Gemini
+- **Miku AI Assistant**: Hatsune Miku as your virtual assistant powered by Gemini
 - **Smart Query Classification**: Automatically classifies queries (TEXT, TEMPORAL, FILTER, IMAGE)
 - **Video Search**: Find relevant video frames using text or image queries
-- **Live2D Avatar**: Animated character with lip-sync and expressions
+- **Live2D Miku Avatar**: Animated character with lip-sync, animations and expressions
 
 ## 📡 API Endpoints
 
 ### honey-be (AI Backend) - Port 3001
 | Endpoint | Description |
 |----------|-------------|
-| `POST /api/speech/chat/smart` | Smart chat with query classification |
-| `POST /api/speech/chat` | Basic chat |
+| `POST /api/speech/chat/smart` | Smart chat with query classification and Miku response |
 | `POST /api/speech/tts` | Text-to-speech |
+| `POST /api/speech/react/visual` | Reaction to visual search results |
 
 ### be (Retrieval Backend) - Port 8082
 | Endpoint | Description |
 |----------|-------------|
-| `POST /clusters/text` | Text-based video search |
-| `POST /clusters/visual` | Image-based search |
-| `POST /clusters/temporal` | Temporal search |
+| `POST /search/text` | Text-based video search |
+| `POST /search/visual` | Image-based search |
+| `POST /search/visual/temporal` | Temporal search (before/now/after) |
+| `POST /search/filter` | Metadata filter search (OCR, genre, etc.) |
+| `POST /chat/rephrase/suggestion`| Rephase query|
 
 ## 🔑 Environment Variables
 
 See `.env.example` files in each sub-project for required configuration.
-
-## 📄 License
-
-MIT

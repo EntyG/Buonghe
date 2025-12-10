@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { ClusterResult, ImageItem } from '../../types';
 import {
   ResultsGrid,
@@ -8,18 +8,6 @@ import { Box, Typography, IconButton, Chip } from '@mui/material';
 import ThumbUpAltOutlinedIcon from '@mui/icons-material/ThumbUpAltOutlined';
 import ThumbDownAltOutlinedIcon from '@mui/icons-material/ThumbDownAltOutlined';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-
-// Backend returns image paths like "/L01_V001/12345.jpg"
-// We need to construct the full URL for display
-const getImageUrl = (item: ImageItem): string => {
-  // If path already starts with http, use it directly
-  if (item.path.startsWith('http')) {
-    return item.path;
-  }
-  // Otherwise construct from backend URL
-  const baseUrl = process.env.REACT_APP_API_URL || 'https://phobert-aic.hcmuwus.space';
-  return `${baseUrl}/images${item.path}`;
-};
 
 interface ChatResultsGridProps {
   results: ClusterResult[];
@@ -69,15 +57,27 @@ const ChatResultsGrid: React.FC<ChatResultsGridProps> = ({
     return () => window.removeEventListener('resize', calculateItemsPerRow);
   }, []);
 
+
   // For temporal: each cluster is a scene with before/now/after
-  // For regular: flatten all images
-  const allImages: { item: ImageItem; clusterName: string }[] = [];
-  
-  results.forEach(cluster => {
-    cluster.image_list.forEach(item => {
-      allImages.push({ item, clusterName: cluster.cluster_name });
+  // For regular: flatten all images, and use getListClusterImages to get URLs
+  const allImages: { item: ImageItem; clusterName: string; imageUrl: string }[] = useMemo(() => {
+    let arr: { item: ImageItem; clusterName: string; imageUrl: string }[] = [];
+    results.forEach((cluster) => {
+      // Use getListClusterImages to get URLs for this cluster
+      // getListClusterImages is async, but image_list is small and sync for local usage
+      // So we use the sync logic here for now
+      const urls = cluster.image_list.map((img) => {
+        if (img.path.startsWith('http')) return img.path;
+        // Use the same logic as getListClusterImages
+        const BASE_IMAGE_URL = process.env.REACT_APP_BASE_IMAGE_URL || 'http://14.225.217.119:8081';
+        return `${BASE_IMAGE_URL}/${img.path}${img.id}.webp`;
+      });
+      cluster.image_list.forEach((item, idx) => {
+        arr.push({ item, clusterName: cluster.cluster_name, imageUrl: urls[idx] });
+      });
     });
-  });
+    return arr;
+  }, [results]);
 
   // Calculate visible images: starts at initialMaxImages, increases by imagesPerExpand each click
   const displayImages = allImages.slice(0, maxVisible);
@@ -85,7 +85,7 @@ const ChatResultsGrid: React.FC<ChatResultsGridProps> = ({
   const hasMore = remainingCount > 0;
 
   // For temporal view
-  const displayScenes = results.slice(0, visibleScenes);
+  const displayScenes = useMemo(() => results.slice(0, visibleScenes), [results, visibleScenes]);
   const remainingScenes = results.length - displayScenes.length;
   const hasMoreScenes = remainingScenes > 0;
 
@@ -143,7 +143,9 @@ const ChatResultsGrid: React.FC<ChatResultsGridProps> = ({
             {/* Before → Now → After sequence */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, overflowX: 'auto' }}>
               {scene.image_list.map((item, idx) => {
-                const imageUrl = getImageUrl(item);
+                // Use getListClusterImages logic for each image
+                const BASE_IMAGE_URL = process.env.REACT_APP_BASE_IMAGE_URL || 'http://14.225.217.119:8081';
+                const imageUrl = item.path.startsWith('http') ? item.path : `${BASE_IMAGE_URL}/${item.path}${item.id}.webp`;
                 const feedback = feedbackMap.get(item.id);
                 const labels = ['Before', 'Now', 'After'];
                 const label = labels[idx] || item.name;
@@ -233,10 +235,8 @@ const ChatResultsGrid: React.FC<ChatResultsGridProps> = ({
   return (
     <Box sx={{ mt: 1.5 }}>
       <ResultsGrid ref={gridRef}>
-        {displayImages.map(({ item, clusterName }, index) => {
+        {displayImages.map(({ item, clusterName, imageUrl }, index) => {
           const feedback = feedbackMap.get(item.id);
-          const imageUrl = getImageUrl(item);
-          
           return (
             <ResultImage 
               key={`${item.id}-${index}`}

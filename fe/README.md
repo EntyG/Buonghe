@@ -1,10 +1,10 @@
-# Focus on Fun AIC Frontend
+# Buonghe Frontend
 
-Frontend application for Event Retrieval System built with React and TypeScript.
+Frontend application for Buonghe - Intelligent Virtual Assistant for Movie Retrieval
 
 ## 🚀 Quick Deploy to Vercel
 
-Xem hướng dẫn chi tiết tại [DEPLOY.md](./DEPLOY.md)
+More details at [DEPLOY.md](./DEPLOY.md)
 
 ### Quick Start (CLI)
 
@@ -16,10 +16,10 @@ vercel
 
 ### Environment Variables cần thiết
 
-- `REACT_APP_BASE_URL` - Base URL cho main API
-- `REACT_APP_BASE_IMAGE_URL` - Base URL cho image serving
+- `REACT_APP_BASE_URL` - Base URL main API
+- `REACT_APP_BASE_IMAGE_URL` - Base URL image serving
 - `REACT_APP_EVENT_API_URL` - Event Retrieval API URL
-
+- `REACT_APP_HONEY_BE_UR` - Model personality 
 ---
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).

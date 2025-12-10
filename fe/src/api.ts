@@ -158,36 +158,6 @@ export const searchClusters = async (
   return res.data as SearchResponse;
 };
 
-export const getListClusterImages = async (cluster: ClusterResult) => {
-  const urls = cluster.image_list.map((img) => {
-    // MOCK MODE: path contains full URL
-    if (USE_MOCK_RETRIEVAL || img.path.startsWith("http")) {
-      return img.path;
-    }
-    // Real mode: Construct image URL: BASE_IMAGE_URL + path + id + .jpg
-    return `${BASE_IMAGE_URL}/${img.path}${img.id}.webp`;
-  });
-  return urls;
-};
-
-export const changeClusterMode = async (
-  state_id: string,
-  mode: ClusterMode
-): Promise<SearchResponse> => {
-  // MOCK MODE
-  if (USE_MOCK_RETRIEVAL) {
-    console.log("[MOCK] changeClusterMode:", { state_id, mode });
-    await mockDelay(200);
-    return generateMockSearchResults("mode change", mode);
-  }
-
-  const res = await axios.post(`${BASE_URL}/settings/change-cluster`, {
-    state_id,
-    mode,
-  });
-  return res.data as SearchResponse;
-};
-
 export const getRephraseSuggestions = async (
   text: string,
   message_ref: string
@@ -212,25 +182,6 @@ export const getRephraseSuggestions = async (
     message_ref,
   });
   return res.data as RephraseResponse;
-};
-
-export const getRelatedImages = async (
-  mode: string,
-  image_id: string,
-  collection?: string
-): Promise<any> => {
-  // MOCK MODE
-  if (USE_MOCK_RETRIEVAL) {
-    console.log("[MOCK] getRelatedImages:", { mode, image_id });
-    await mockDelay(300);
-    return { results: generateMockImages(8, Math.floor(Math.random() * 1000)) };
-  }
-
-  // collection optional
-  const params: any = { mode, image_id };
-  if (collection) params.collection = collection;
-  const res = await axios.get(`${BASE_URL}/search/related`, { params });
-  return res.data;
 };
 
 export const postChatFilter = async (payload: any): Promise<any> => {
@@ -310,8 +261,7 @@ export const filterSearch = async (
   // Real API call
   const requestPayload = {
     ...payload,
-    collection,
-    ...(state_id && { state_id }),
+    collection
   };
 
   const res = await axios.post(`${BASE_URL}/search/filter`, requestPayload);
@@ -433,30 +383,6 @@ export const temporalSearch = async (
     }
   );
   return response.data;
-};
-
-/**
- * Send relevance feedback to improve search results
- * @param payload - Feedback payload containing state_id, mode, collection, positive and negative image IDs
- * @returns Updated search results with refined ranking
- */
-export const sendFeedback = async (payload: {
-  state_id: string;
-  mode: ClusterMode;
-  collection: string;
-  positive: string[];
-  negative: string[];
-}): Promise<SearchResponse> => {
-  // MOCK MODE
-  if (USE_MOCK_RETRIEVAL) {
-    console.log("[MOCK] sendFeedback:", payload);
-    await mockDelay(400);
-    return generateMockSearchResults("feedback refined", payload.mode);
-  }
-
-  console.log("Sending feedback:", payload);
-  const response = await axios.post(`${BASE_URL}/search/feedback`, payload);
-  return response.data as SearchResponse;
 };
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -687,7 +613,7 @@ export const smartSearch = async (
       searchResult = { results: [], state_id: state_id || "", mode, status: "error" };
     }
   } else {
-    console.log(`💬 miku identified chat-only intent, skipping search`);
+    console.log(`💬 Miku identified chat-only intent, skipping search`);
   }
 
   return {
