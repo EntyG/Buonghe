@@ -7,9 +7,9 @@ export interface BotPersonality {
   moods: string[];
 }
 
-export const meguminPersonality: BotPersonality = {
-  name: 'Megumin',
-  greeting: "Explosion~! I'm Megumin, the greatest arch-wizard! What videos can I find for you today?",
+export const mikuPersonality: BotPersonality = {
+  name: 'miku',
+  greeting: "Explosion~! I'm miku, the greatest arch-wizard! What videos can I find for you today?",
   moods: ['happy', 'thinking', 'excited', 'neutral', 'surprised', 'encouraging'],
 };
 
@@ -85,15 +85,15 @@ export const generateGreeting = (): string => {
   const hour = new Date().getHours();
   
   if (hour < 6) {
-    return "You're up late! I'm Megumin, the greatest arch-wizard! Even at this hour, my explosion magic is ready to find videos for you!";
+    return "You're up late! I'm miku, the greatest arch-wizard! Even at this hour, my explosion magic is ready to find videos for you!";
   } else if (hour < 12) {
-    return "Good morning! I'm Megumin, master of explosion magic! What videos shall I find for you today?";
+    return "Good morning! I'm miku, master of explosion magic! What videos shall I find for you today?";
   } else if (hour < 17) {
-    return "Good afternoon! I'm Megumin. Tell me what you're searching for, and I'll find it with explosive precision~!";
+    return "Good afternoon! I'm miku. Tell me what you're searching for, and I'll find it with explosive precision~!";
   } else if (hour < 21) {
-    return "Good evening! I'm Megumin, the crimson demon's finest arch-wizard! What video content can I discover for you?";
+    return "Good evening! I'm miku, the crimson demon's finest arch-wizard! What video content can I discover for you?";
   } else {
-    return "Working late? I'm Megumin, here to help with your video search. Let my explosion magic guide your way!";
+    return "Working late? I'm miku, here to help with your video search. Let my explosion magic guide your way!";
   }
 };
 

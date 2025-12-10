@@ -1,6 +1,6 @@
-# Buonghe - Video Retrieval with Megumin AI Assistant
+# Buonghe - Video Retrieval with miku AI Assistant
 
-A video retrieval application with an anime-style AI assistant (Megumin) powered by Google Gemini.
+A video retrieval application with an anime-style AI assistant (miku) powered by Google Gemini.
 
 ## 🏗️ Project Structure
 
@@ -45,7 +45,7 @@ python server.py
 
 ## 🎭 Features
 
-- **Megumin AI Assistant**: Anime-style virtual assistant powered by Gemini
+- **miku AI Assistant**: Anime-style virtual assistant powered by Gemini
 - **Smart Query Classification**: Automatically classifies queries (TEXT, TEMPORAL, FILTER, IMAGE)
 - **Video Search**: Find relevant video frames using text or image queries
 - **Live2D Avatar**: Animated character with lip-sync and expressions

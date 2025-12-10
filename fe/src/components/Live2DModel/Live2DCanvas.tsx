@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, forwardRef, useImperativeHandle, useState } from 'react';
+import React, { useEffect, useRef, useCallback, forwardRef, useImperativeHandle, useState } from 'react';
 // Import from our initialization module to ensure proper setup
 import { PIXI, Live2DModel } from '../../utils/live2d-init';
 
@@ -27,32 +27,8 @@ declare global {
   }
 }
 
-// Motion mapping - Extended with all available emotions
-const MOOD_TO_MOTION: { [key: string]: string } = {
-  // Primary moods
-  happy: 'motions/02_fun.motion3.json',
-  excited: 'motions/I_fun_motion_01.motion3.json',
-  concerned: 'motions/04_sad.motion3.json',
-  pouty: 'motions/01_angry.motion3.json',
-  encouraging: 'motions/02_fun.motion3.json',
-  thinking: 'motions/00_nomal.motion3.json',
-  surprised: 'motions/03_surprised.motion3.json',
-  sad: 'motions/I_f_sad__motion_01.motion3.json',
-  angry: 'motions/I_angry_motion_01.motion3.json',
-  neutral: 'motions/00_nomal.motion3.json',
-  
-  // Additional emotions from folder
-  sleep: 'motions/05_sleep.motion3.json',
-  sleepy: 'motions/05_sleep.motion3.json',
-  shy: 'motions/07_tere.motion3.json',
-  embarrassed: 'motions/07_tere.motion3.json',
-  blush: 'motions/07_tere.motion3.json',
-  idle: 'motions/I_idling_motion_01.motion3.json',
-  normal: 'motions/00_nomal.motion3.json',
-  fun: 'motions/02_fun.motion3.json',
-  repeat: 'motions/I_repeat_motion_01.motion3.json',
-  tojime: 'motions/06_tojime.motion3.json', // Closing eyes/bashful
-};
+
+// Dynamically extract all available motions from the model after load
 
 const Live2DCanvas = forwardRef<Live2DCanvasRef, Live2DCanvasProps>(({ mood = 'neutral', isSpeaking = false, onReady }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -63,6 +39,8 @@ const Live2DCanvas = forwardRef<Live2DCanvasRef, Live2DCanvasProps>(({ mood = 'n
   const lipSyncStartTimeRef = useRef(0);
   const lipSyncRafRef = useRef<number | null>(null);
   const eyeTrackingRafRef = useRef<number | null>(null);
+  // Store all motions as { group, index, file }
+  const [allMotions, setAllMotions] = useState<{ group: string; index: number; file: string }[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [debugInfo, setDebugInfo] = useState('Initializing...');
@@ -726,9 +704,8 @@ const Live2DCanvas = forwardRef<Live2DCanvasRef, Live2DCanvasProps>(({ mood = 'n
   }, []);
 
   useImperativeHandle(ref, () => ({
-    playMotion: (motionName: string) => {
-      if (modelRef.current) {
-        const motionFile = MOOD_TO_MOTION[motionName] || motionName;
+    playMotion: (motionFile: string) => {
+      if (modelRef.current && motionFile) {
         try {
           modelRef.current.motion(motionFile);
         } catch (e) {
@@ -737,14 +714,9 @@ const Live2DCanvas = forwardRef<Live2DCanvasRef, Live2DCanvasProps>(({ mood = 'n
       }
     },
     setMood: (newMood: string) => {
-      if (modelRef.current && MOOD_TO_MOTION[newMood]) {
-        try {
-          modelRef.current.motion(MOOD_TO_MOTION[newMood]);
-        } catch (e) {
-          console.warn('Mood error:', e);
-        }
-      }
+      // Optionally implement mood-to-motion mapping here if needed
     },
+      getAllMotions: () => allMotions,
     startSpeaking: () => startMouthAnimation(),
     stopSpeaking: () => {
       stopMouthAnimation();
@@ -777,7 +749,7 @@ const Live2DCanvas = forwardRef<Live2DCanvasRef, Live2DCanvasProps>(({ mood = 'n
       }
       isBlinkingRef.current = false;
     },
-  }), [startMouthAnimation, stopMouthAnimation, stopLipSync, startLipSync, startEyeTracking, resetGazePosition, startIdleAnimation]);
+  }), [startMouthAnimation, stopMouthAnimation, stopLipSync, startLipSync, startEyeTracking, resetGazePosition, startIdleAnimation, allMotions]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -833,8 +805,9 @@ const Live2DCanvas = forwardRef<Live2DCanvasRef, Live2DCanvasProps>(({ mood = 'n
         if (!canvas || !(canvas instanceof HTMLCanvasElement)) {
           throw new Error('PIXI Application view is not a canvas element');
         }
-        // Disable pointer events on canvas to prevent interaction system from processing them
-        canvas.style.pointerEvents = 'none';
+        // Enable pointer events on canvas so clicks are handled
+        canvas.style.pointerEvents = 'auto';
+        // No click handler: animation is now triggered by mood change
         containerRef.current!.appendChild(canvas);
         appRef.current = app;
         
@@ -844,21 +817,22 @@ const Live2DCanvas = forwardRef<Live2DCanvasRef, Live2DCanvasProps>(({ mood = 'n
         // Load model
         // Disable internal autoInteract to avoid Pixi v7 interaction manager incompatibility,
         // we'll manage simple click interactions ourselves.
-        const model = await Live2DModel.from('/live2d/yuki/c001_f_costume_kouma.model3.json', {
+        const model = await Live2DModel.from('/live2d/21miku_normal_3.0_f_t02/21miku_normal_3.0_f_t02.model3.json', {
           autoInteract: false,
         });
         
         if (!mounted) return;
         modelRef.current = model;
 
+
         setDebugInfo('Setting up model...');
         console.log('📦 Model loaded, setting up...');
-        
+
         // Setup model - Scale to fit panel height
-        model.scale.set(0.18);  // Smaller to fit full body
+        model.scale.set(0.21);  // Smaller to fit full body
         model.anchor.set(0.5, 0.5);
         model.x = app.screen.width / 2;
-        model.y = app.screen.height / 2 + 50;  // Less offset to show full body
+        model.y = app.screen.height / 2 + 100;  // Less offset to show full body
         // Disable pointer interaction to avoid Pixi v7 interaction manager issues
         // with pixi-live2d-display; we focus on autonomous motions for now.
         model.eventMode = 'none';
@@ -871,7 +845,7 @@ const Live2DCanvas = forwardRef<Live2DCanvasRef, Live2DCanvasProps>(({ mood = 'n
         // Disable events on stage as well
         app.stage.eventMode = 'none';
         app.stage.addChild(model);
-        
+
         // Recursively disable events on all children to prevent isInteractive errors
         const disableEvents = (obj: any) => {
           if (obj && typeof obj === 'object') {
@@ -885,6 +859,25 @@ const Live2DCanvas = forwardRef<Live2DCanvasRef, Live2DCanvasProps>(({ mood = 'n
         };
         disableEvents(model);
 
+        // --- Dynamically extract all available motions ---
+        try {
+          const definitions = model.internalModel?.motionManager?.definitions;
+          if (definitions) {
+            const foundMotions: { group: string; index: number; file: string }[] = [];
+            Object.entries(definitions).forEach(([group, motions]: [string, any]) => {
+              if (Array.isArray(motions)) {
+                motions.forEach((motion: any, idx: number) => {
+                  if (motion.File) foundMotions.push({ group, index: idx, file: motion.File });
+                });
+              }
+            });
+            setAllMotions(foundMotions);
+            console.log('🎬 All available motions:', foundMotions);
+          }
+        } catch (e) {
+          console.warn('Could not extract motions:', e);
+        }
+
         // Play idle motion
         try {
           await model.motion('motions/I_idling_motion_01.motion3.json');
@@ -893,7 +886,7 @@ const Live2DCanvas = forwardRef<Live2DCanvasRef, Live2DCanvasProps>(({ mood = 'n
           console.warn('Could not play initial motion:', e);
         }
 
-        console.log('✅ Megumin loaded successfully!');
+        console.log('✅ miku loaded successfully!');
         setLoading(false);
         setError(null);
         setDebugInfo('');
@@ -928,7 +921,7 @@ const Live2DCanvas = forwardRef<Live2DCanvasRef, Live2DCanvasProps>(({ mood = 'n
       } catch (err: any) {
         console.error('❌ Live2D Error:', err);
         if (mounted) {
-          setError(err.message || 'Failed to load Megumin');
+          setError(err.message || 'Failed to load miku');
           setLoading(false);
           setDebugInfo('');
         }
@@ -963,28 +956,89 @@ const Live2DCanvas = forwardRef<Live2DCanvasRef, Live2DCanvasProps>(({ mood = 'n
 
   // Mood changes - Play motion AND adjust facial expressions
   useEffect(() => {
-    if (modelRef.current && MOOD_TO_MOTION[mood]) {
-      console.log(`🎭 Changing mood to: ${mood}`);
-      
-      // Play the motion animation
-      modelRef.current.motion(MOOD_TO_MOTION[mood]).catch(console.warn);
-      
-      // Also apply facial expression parameters based on mood
-      applyMoodExpression(mood);
-    }
+    // Optionally implement mood-to-motion mapping here if needed
+    // You can use allMotions to select a motion to play
   }, [mood, applyMoodExpression]);
 
   // Speaking state
   useEffect(() => {
     if (isSpeaking) {
-      console.log('🗣️ Megumin started speaking');
+      console.log('🗣️ miku started speaking');
       startMouthAnimation();
     } else {
-      console.log('🤐 Megumin stopped speaking');
+      console.log('🤐 miku stopped speaking');
       stopMouthAnimation();
       stopLipSync();
     }
   }, [isSpeaking, startMouthAnimation, stopMouthAnimation, stopLipSync]);
+
+
+  // Play a random motion from the group matching the mood/emotion
+  // Mood-to-motion mapping based on provided mood categories
+  useEffect(() => {
+    if (!modelRef.current || !allMotions.length || !mood) return;
+
+    // Define regex patterns for each mood
+    const moodMotionPatterns: Record<string, RegExp[]> = {
+      happy: [
+        /w-adult-glad0[1-3]/, /w-adult-delicious0[1-3]/, /w-adult-relief01/, /w-cool-glad01/,
+        /w-cute-glad0[1-6](r)?/, /w-cute-delicious0[1-2]/, /w-happy-glad0[1-2]/, /w-happy-poseglad02/,
+        /w-normal-glad0[1-2]/, /w-normal-relief01/
+      ],
+      excited: [
+        /w-happy-wandahoi01/, /w-happy-purpose01/, /w-special12-catch(B)?/, /w-cool-forward0[1-2]/,
+        /w-cute-forward0[1-3]/, /w-happy-forward0[1-2]/, /w-normal-forward0[1-3]/, /w-cute-poseforward02/
+      ],
+      thinking: [
+        /w-adult-think0[1-2]/, /w-adult-tilthead0[1-5]/, /w-cool-tilthead/, /w-cute-tilthead/, /w-happy-tilthead/, /w-normal-tilthead/,
+        /w-animal-tilthead/, /w-normal-lookleft01/, /w-normal-lookright01/, /w-normal-yurayura01/
+      ],
+      neutral: [
+        /w-adult-nod0[1-5]/, /w-adult-shakehand01/, /w-cool-nod/, /w-cute-nod/, /w-cute-sleep0[1-2]/,
+        /w-happy-nod/, /w-normal-nod/, /w-normal-greeting01/, /w-normal-pose0[1-6]/, /w-adult-posenod02/, /w-cool-posenod/, /w-cute-posenod/
+      ],
+      shy: [
+        /w-adult-blushed0[1-4]/, /w-cool-blushed01/, /w-cute-shy0[1-3]/, /w-cute-fidget01/, /w-animal-fidget0[1-2]/, /w-animal-shy01/,
+        /w-normal-blushed01/, /w-normal-shy01/, /w-normal-fidget01/, /w-animal-lookaway01/, /w-happy-lookaway01/, /w-normal-lookaway01/
+      ],
+      concerned: [
+        /w-adult-trouble0[1-2]/, /w-adult-shakehead01/, /w-cool-sad01/, /w-cool-sigh0[1-2]/, /w-cool-trouble01/, /w-cool-shakehead0[1-2]/,
+        /w-happy-sad0[1-2]/, /w-happy-sigh01/, /w-happy-shakehead0[1-3]/, /w-normal-sad01/, /w-normal-sigh01/, /w-normal-trouble0[1-2]/,
+        /w-normal-shakehead0[1-6]/, /w-cute-shakehead0[1-3]/
+      ],
+      dramatic: [
+        /w-cool-angry01/, /w-cute-angry01/, /w-happy-angry0[1-2]/, /w-normal-angry01/, /w-cool-posesad01/
+      ],
+      smug: [
+        /w-cute-smug01/, /w-cute-wink0[1-2]/
+      ]
+    };
+
+    // Find motions matching the current mood
+    const patterns = moodMotionPatterns[mood.toLowerCase()];
+    let matching: typeof allMotions = [];
+    if (patterns) {
+      matching = allMotions.filter(m => patterns.some(p => p.test(m.file)));
+    }
+    // Fallback: if no match, use all motions
+    const motionsToChoose = matching.length ? matching : allMotions;
+    const random = motionsToChoose[Math.floor(Math.random() * motionsToChoose.length)];
+    setDebugInfo(`Emotion: ${mood} → Playing: ${random.file} (group: ${random.group}, index: ${random.index})`);
+    try {
+      const result = modelRef.current.motion(random.group, random.index);
+      if (result && typeof result.then === 'function') {
+        result.then(() => setDebugInfo(`Played: ${random.file}`)).catch((e: any) => {
+          setDebugInfo(`Motion error: ${String(e)}`);
+          console.warn('Motion error:', e);
+        });
+      } else {
+        setDebugInfo(`Played: ${random.file}`);
+      }
+    } catch (e) {
+      setDebugInfo(`Motion error: ${String(e)}`);
+      console.warn('Motion error:', e);
+    }
+  }, [mood, allMotions]);
 
   return (
     <div 
@@ -1008,13 +1062,15 @@ const Live2DCanvas = forwardRef<Live2DCanvasRef, Live2DCanvasProps>(({ mood = 'n
           background: 'rgba(0,0,0,0.5)',
         }}>
           <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🎀</div>
-          <p style={{ color: '#fda4af' }}>Loading Megumin...</p>
+          <p style={{ color: '#fda4af' }}>Loading Miku...</p>
           {debugInfo && (
             <p style={{ color: 'rgba(251,113,133,0.6)', fontSize: '0.875rem', marginTop: '0.5rem' }}>{debugInfo}</p>
           )}
         </div>
       )}
-      
+
+      {/* The random animation button has been removed */}
+
       {error && (
         <div style={{
           position: 'absolute',
@@ -1028,7 +1084,7 @@ const Live2DCanvas = forwardRef<Live2DCanvasRef, Live2DCanvasProps>(({ mood = 'n
           padding: '1.5rem',
         }}>
           <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>😢</div>
-          <p style={{ color: '#fca5a5', textAlign: 'center', marginBottom: '0.5rem', fontWeight: 500 }}>Failed to Load Megumin</p>
+          <p style={{ color: '#fca5a5', textAlign: 'center', marginBottom: '0.5rem', fontWeight: 500 }}>Failed to Load miku</p>
           <p style={{ color: 'rgba(252,165,165,0.8)', fontSize: '0.875rem', textAlign: 'center', maxWidth: '20rem', marginBottom: '1rem' }}>{error}</p>
           <button 
             onClick={() => window.location.reload()}
@@ -1047,6 +1103,7 @@ const Live2DCanvas = forwardRef<Live2DCanvasRef, Live2DCanvasProps>(({ mood = 'n
         </div>
       )}
     </div>
+
   );
 });
 

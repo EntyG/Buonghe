@@ -36,7 +36,7 @@ import {
   visualSearch,
   smartSearch,
   getVisualSearchReaction,
-  MeguminSmartChatResponse,
+  MikuSmartChatResponse,
   SearchType,
   HONEY_BE_URL,
 } from '../../api';
@@ -71,7 +71,7 @@ interface ConversationItem {
   results?: ClusterResult[];
   botResponse?: string;
   isLoading?: boolean;
-  meguminResponse?: MeguminSmartChatResponse['data'] | null;  // AI response with voice data
+  mikuResponse?: MikuSmartChatResponse['data'] | null;  // AI response with voice data
   wasSearchQuery?: boolean;  // Whether this triggered a search
   searchType?: SearchType;  // Type of search: TEXT, TEMPORAL, FILTER, IMAGE, NONE
 }
@@ -143,7 +143,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
   // Handle model ready
   const handleModelReady = useCallback(() => {
     setIsModelReady(true);
-    setCurrentMood('happy');
+    setCurrentMood('neutral');
     setTimeout(() => setCurrentMood('neutral'), 2000);
   }, []);
 
@@ -155,8 +155,8 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
     }
   }, []);
 
-  // Play audio from Megumin response and cleanup after playback
-  const playMeguminAudio = useCallback((audioUrl: string, lipSyncData?: any[]) => {
+  // Play audio from miku response and cleanup after playback
+  const playMikuAudio = useCallback((audioUrl: string, lipSyncData?: any[]) => {
     if (audioRef.current) {
       audioRef.current.pause();
     }
@@ -198,7 +198,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
     });
   }, []);
 
-  // Handle text input - smart classification by Megumin
+  // Handle text input - smart classification by miku
   const handleSearch = async (query: string, stateId?: string) => {
     if (!query.trim()) return;
 
@@ -227,8 +227,8 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
     updateMood('thinking');
 
     try {
-      // Smart search: Megumin classifies query first, then retrieval if needed
-      const { meguminResponse, search: searchResult, searchType } = await smartSearch(
+      // Smart search: miku classifies query first, then retrieval if needed
+      const { mikuResponse, search: searchResult, searchType } = await smartSearch(
         query.trim(),
         mode,
         SEARCH_MODEL,
@@ -237,17 +237,17 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
         chatSessionId
       );
 
-      const meguminData = meguminResponse.data;
-      const wasSearch = meguminData.isSearchQuery && searchResult !== null;
+      const mikuData = mikuResponse.data;
+      const wasSearch = mikuData.isSearchQuery && searchResult !== null;
 
-      // Update conversation with results and Megumin's response
+      // Update conversation with results and miku's response
       setConversations(prev => prev.map(c => 
         c.id === convId 
           ? { 
               ...c, 
               results: searchResult?.results || [], 
-              botResponse: meguminData.meguminResponse.text, 
-              meguminResponse: meguminData,
+              botResponse: mikuData.mikuResponse.text, 
+              mikuResponse: mikuData,
               wasSearchQuery: wasSearch,
               searchType: searchType,
               isLoading: false 
@@ -260,21 +260,21 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
         setLatestStateId(searchResult.state_id);
       }
       
-      updateMood(meguminData.meguminResponse.mood || 'happy');
+      updateMood(mikuData.mikuResponse.mood || 'neutral');
 
-      // Play Megumin's voice if available
-      if (meguminData.audio?.url && !meguminData.useFallbackAudio) {
+      // Play miku's voice if available
+      if (mikuData.audio?.url && !mikuData.useFallbackAudio) {
         // Audio URL from honey-be is relative, prepend the server URL
-        const fullAudioUrl = meguminData.audio.url.startsWith('http') 
-          ? meguminData.audio.url 
-          : `${HONEY_BE_URL}${meguminData.audio.url}`;
-        playMeguminAudio(fullAudioUrl, meguminData.avatar?.lipSync);
+        const fullAudioUrl = mikuData.audio.url.startsWith('http') 
+          ? mikuData.audio.url 
+          : `${HONEY_BE_URL}${mikuData.audio.url}`;
+        playMikuAudio(fullAudioUrl, mikuData.avatar?.lipSync);
       }
 
       // Get suggestions only if it was a search query
-      if (wasSearch && meguminData.searchQuery) {
+      if (wasSearch && mikuData.searchQuery) {
         try {
-          const sugRes = await getRephraseSuggestions(meguminData.searchQuery, message_ref);
+          const sugRes = await getRephraseSuggestions(mikuData.searchQuery, message_ref);
           dispatch(setSuggestions({ message_ref, suggestions: sugRes.variants || [] }));
           
           // Update conversation with suggestions
@@ -342,7 +342,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
       
       const totalImages = res.results.reduce((acc, c) => acc + c.image_list.length, 0);
       
-      // Step 2: Get Megumin's reaction with voice
+      // Step 2: Get miku's reaction with voice
       let botText = '';
       let mood = 'happy';
       
@@ -354,21 +354,21 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
         );
         
         const reactionData = reactionResponse.data;
-        botText = reactionData.meguminResponse.text;
-        mood = reactionData.meguminResponse.mood || 'happy';
+        botText = reactionData.mikuResponse.text;
+        mood = reactionData.mikuResponse.mood || 'happy';
         
-        // Play Megumin's voice if available
+        // Play miku's voice if available
         if (reactionData.audio?.url && !reactionData.useFallbackAudio) {
           const fullAudioUrl = reactionData.audio.url.startsWith('http') 
             ? reactionData.audio.url 
             : `${HONEY_BE_URL}${reactionData.audio.url}`;
           // Avatar lipSync has visemes nested inside
           const lipSyncData = (reactionData.avatar as any)?.lipSync?.visemes;
-          playMeguminAudio(fullAudioUrl, lipSyncData);
+          playMikuAudio(fullAudioUrl, lipSyncData);
         }
       } catch (reactionError) {
-        console.warn('⚠️ Could not get Megumin reaction, using fallback:', reactionError);
-        // Fallback to static response if Megumin is unavailable
+        console.warn('⚠️ Could not get miku reaction, using fallback:', reactionError);
+        // Fallback to static response if miku is unavailable
         const fallback = generateBotResponse('visual', totalImages, res.results.length);
         botText = fallback.text;
         mood = fallback.mood;
@@ -514,7 +514,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
               }}
             >
               <CircularProgress size={48} />
-              <Box sx={{ mt: 2, color: 'text.secondary' }}>Loading Megumin...</Box>
+              <Box sx={{ mt: 2, color: 'text.secondary' }}>Loading miku...</Box>
             </Box>
           )}
           <Live2DCanvas
@@ -526,7 +526,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
         </Live2DContainer>
         
         <CharacterInfo>
-          <h3>Megumin</h3>
+          <h3>miku</h3>
           <p>Your Movie Retrieval Assistant</p>
         </CharacterInfo>
       </Live2DPanel>

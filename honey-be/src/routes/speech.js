@@ -1,5 +1,5 @@
 import express from 'express';
-import meguminService from '../services/meguminService.js';
+import mikuService from '../services/MikuService.js';
 
 const router = express.Router();
 
@@ -20,11 +20,11 @@ router.post('/chat/smart', async (req, res, next) => {
     }
 
     console.log(`\n🎀 ═══════════════════════════════════════`);
-    console.log(`🎀 Megumin Smart Chat: "${message}"`);
+    console.log(`🎀 miku Smart Chat: "${message}"`);
     console.log(`🎀 ═══════════════════════════════════════\n`);
 
     // Step 1: Classify query and generate response using Gemini (includes Japanese translation)
-    const llmResult = await meguminService.classifyAndRespond(
+    const llmResult = await mikuService.classifyAndRespond(
       message,
       sessionId
     );
@@ -34,18 +34,18 @@ router.post('/chat/smart', async (req, res, next) => {
     let useFallback = false;
     
     try {
-      ttsResult = await meguminService.textToSpeech(llmResult.text, {
+      ttsResult = await mikuService.textToSpeech(llmResult.text, {
         japaneseText: llmResult.textJapanese  // Use pre-translated Japanese from LLM response
       });
       useFallback = ttsResult.useFallback || false;
     } catch (ttsError) {
       console.warn('⚠️ TTS failed, client will use fallback:', ttsError.message);
       useFallback = true;
-      const estimatedDuration = meguminService.estimateDuration(llmResult.text);
+      const estimatedDuration = mikuService.estimateDuration(llmResult.text);
       ttsResult = {
         audioUrl: null,
         duration: estimatedDuration,
-        lipSync: meguminService.generateLipSyncData(llmResult.text, estimatedDuration)
+        lipSync: mikuService.generateLipSyncData(llmResult.text, estimatedDuration)
       };
     }
 
@@ -63,8 +63,8 @@ router.post('/chat/smart', async (req, res, next) => {
         temporalQuery: llmResult.temporalQuery,  // { before, now, after }
         filterQuery: llmResult.filterQuery,      // { subtitle: [], ocr: [], object: [], genre: [] }
         intent: llmResult.intent,
-        // Megumin's response
-        meguminResponse: {
+        // miku's response
+        mikuResponse: {
           text: llmResult.text,
           mood: llmResult.mood
         },
@@ -85,7 +85,7 @@ router.post('/chat/smart', async (req, res, next) => {
 
 /**
  * POST /api/speech/react/visual
- * Generate Megumin's reaction to visual search results (with TTS)
+ * Generate miku's reaction to visual search results (with TTS)
  * Uses hardcoded Japanese responses - no Gemini call
  */
 router.post('/react/visual', async (req, res, next) => {
@@ -97,12 +97,12 @@ router.post('/react/visual', async (req, res, next) => {
     } = req.body;
 
     console.log(`\n🎀 ═══════════════════════════════════════`);
-    console.log(`🎀 Megumin Visual Search Reaction`);
+    console.log(`🎀 miku Visual Search Reaction`);
     console.log(`🎀 Results: ${resultCount} images, ${clusterCount} clusters`);
     console.log(`🎀 ═══════════════════════════════════════\n`);
 
     // Step 1: Get hardcoded reaction (no Gemini call)
-    const reaction = meguminService.getVisualSearchReaction(resultCount, clusterCount);
+    const reaction = mikuService.getVisualSearchReaction(resultCount, clusterCount);
 
     // Step 2: Generate voice using ElevenLabs TTS (Japanese)
     let ttsResult;
@@ -110,18 +110,18 @@ router.post('/react/visual', async (req, res, next) => {
     
     try {
       // Always use Japanese text for TTS
-      ttsResult = await meguminService.textToSpeech(reaction.textJapanese, {
+      ttsResult = await mikuService.textToSpeech(reaction.textJapanese, {
         japaneseText: reaction.textJapanese
       });
       useFallback = ttsResult.useFallback || false;
     } catch (ttsError) {
       console.warn('⚠️ TTS failed, client will use fallback:', ttsError.message);
       useFallback = true;
-      const estimatedDuration = meguminService.estimateDuration(reaction.textJapanese);
+      const estimatedDuration = mikuService.estimateDuration(reaction.textJapanese);
       ttsResult = {
         audioUrl: null,
         duration: estimatedDuration,
-        lipSync: meguminService.generateLipSyncData(reaction.textJapanese, estimatedDuration)
+        lipSync: mikuService.generateLipSyncData(reaction.textJapanese, estimatedDuration)
       };
     }
 
@@ -131,8 +131,8 @@ router.post('/react/visual', async (req, res, next) => {
     res.json({
       success: true,
       data: {
-        // Megumin's response
-        meguminResponse: {
+        // miku's response
+        mikuResponse: {
           text: reaction.text,
           textJapanese: reaction.textJapanese,
           mood: reaction.mood
@@ -167,7 +167,7 @@ router.delete('/audio/:filename', (req, res) => {
     });
   }
   
-  const deleted = meguminService.deleteAudioByFilename(filename);
+  const deleted = mikuService.deleteAudioByFilename(filename);
   res.json({
     success: deleted,
     message: deleted ? `Audio file deleted: ${filename}` : 'File not found or already deleted'
@@ -182,7 +182,7 @@ router.delete('/audio/:filename', (req, res) => {
  * Prepare avatar animation data
  */
 function prepareAvatarData(llmResult, ttsResult) {
-  const lipSync = ttsResult.lipSync || meguminService.generateLipSyncData(llmResult.text, ttsResult.duration || 0);
+  const lipSync = ttsResult.lipSync || mikuService.generateLipSyncData(llmResult.text, ttsResult.duration || 0);
   const mood = llmResult.mood || 'neutral';
   
   return {

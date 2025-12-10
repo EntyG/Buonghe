@@ -16,7 +16,7 @@ export const HONEY_BE_URL =
 
 // ═══════════════════════════════════════════════════════════════════════
 // MOCK MODE - Set to false when retrieval backend is working
-// This only affects retrieval BE, Honey BE (Megumin AI) remains real
+// This only affects retrieval BE, Honey BE (miku AI) remains real
 // ═══════════════════════════════════════════════════════════════════════
 const USE_MOCK_RETRIEVAL = true;
 
@@ -460,10 +460,10 @@ export const sendFeedback = async (payload: {
 };
 
 // ═══════════════════════════════════════════════════════════════════════
-// Honey Backend API (AI Chat + TTS for Live2D Avatar - Megumin)
+// Honey Backend API (AI Chat + TTS for Live2D Avatar - miku)
 // ═══════════════════════════════════════════════════════════════════════
 
-// Search types that Megumin can classify
+// Search types that miku can classify
 export type SearchType = "TEXT" | "TEMPORAL" | "FILTER" | "IMAGE" | "NONE";
 
 // Temporal query structure for TEMPORAL searches
@@ -479,7 +479,7 @@ export interface FilterQuery {
   genre: string[];     // Video genres/categories
 }
 
-export interface MeguminSmartChatResponse {
+export interface MikuSmartChatResponse {
   success: boolean;
   data: {
     userMessage: string;
@@ -490,8 +490,8 @@ export interface MeguminSmartChatResponse {
     temporalQuery: TemporalQuery | null;  // Structured temporal query for TEMPORAL type
     filterQuery: FilterQuery | null;  // Filter metadata for FILTER type
     intent: "SEARCH" | "CHAT";
-    // Megumin's response
-    meguminResponse: {
+    // miku's response
+    mikuResponse: {
       text: string;
       mood: string;
     };
@@ -517,29 +517,29 @@ export interface MeguminSmartChatResponse {
 }
 
 /**
- * Smart chat with Megumin - classifies query and returns search parameters
- * Flow: User message → Megumin classifies → responds + optional searchQuery + searchType
+ * Smart chat with miku - classifies query and returns search parameters
+ * Flow: User message → miku classifies → responds + optional searchQuery + searchType
  * @param message - User's text message
  * @param sessionId - Session ID for conversation context
  */
-export const smartChatWithMegumin = async (
+export const smartChatWithMiku = async (
   message: string,
   sessionId: string = "default"
-): Promise<MeguminSmartChatResponse> => {
+): Promise<MikuSmartChatResponse> => {
   const response = await axios.post(`${HONEY_BE_URL}/api/speech/chat/smart`, {
     message,
     sessionId,
   });
-  return response.data as MeguminSmartChatResponse;
+  return response.data as MikuSmartChatResponse;
 };
 
 /**
- * Visual search reaction response from Megumin
+ * Visual search reaction response from miku
  */
-export interface MeguminVisualReactionResponse {
+export interface MikuVisualReactionResponse {
   success: boolean;
   data: {
-    meguminResponse: {
+    mikuResponse: {
       text: string;
       mood: string;
     };
@@ -564,7 +564,7 @@ export interface MeguminVisualReactionResponse {
 }
 
 /**
- * Get Megumin's reaction to visual search results
+ * Get miku's reaction to visual search results
  * Called after visual search completes to get voice response
  * @param resultCount - Number of images found
  * @param clusterCount - Number of clusters/scenes found
@@ -574,23 +574,23 @@ export const getVisualSearchReaction = async (
   resultCount: number,
   clusterCount: number,
   sessionId: string = "default"
-): Promise<MeguminVisualReactionResponse> => {
+): Promise<MikuVisualReactionResponse> => {
   const response = await axios.post(`${HONEY_BE_URL}/api/speech/react/visual`, {
     resultCount,
     clusterCount,
     sessionId,
   });
-  return response.data as MeguminVisualReactionResponse;
+  return response.data as MikuVisualReactionResponse;
 };
 
 /**
  * Smart search flow:
- * 1. Send query to Megumin (honey-be) for classification
+ * 1. Send query to miku (honey-be) for classification
  * 2. Based on searchType, call the appropriate retrieval backend endpoint
- * 3. Return both Megumin's response and search results (if applicable)
+ * 3. Return both miku's response and search results (if applicable)
  */
 export interface SmartSearchResult {
-  meguminResponse: MeguminSmartChatResponse;
+  mikuResponse: MikuSmartChatResponse;
   search: SearchResponse | null;  // null if it was just a chat query
   searchType: SearchType;
 }
@@ -603,15 +603,15 @@ export const smartSearch = async (
   top_k: number = 256,
   sessionId: string = "default"
 ): Promise<SmartSearchResult> => {
-  // Step 1: Ask Megumin to classify and respond
-  const meguminResponse = await smartChatWithMegumin(query, sessionId);
-  const { isSearchQuery, searchType, searchQuery, temporalQuery, filterQuery } = meguminResponse.data;
+  // Step 1: Ask miku to classify and respond
+  const mikuResponse = await smartChatWithMiku(query, sessionId);
+  const { isSearchQuery, searchType, searchQuery, temporalQuery, filterQuery } = mikuResponse.data;
   
   // Step 2: If it's a search query, call the appropriate retrieval backend
   let searchResult: SearchResponse | null = null;
   
   if (isSearchQuery) {
-    console.log(`🔍 Megumin classified: ${searchType} search`);
+    console.log(`🔍 miku classified: ${searchType} search`);
     
     try {
       switch (searchType) {
@@ -687,11 +687,11 @@ export const smartSearch = async (
       searchResult = { results: [], state_id: state_id || "", mode, status: "error" };
     }
   } else {
-    console.log(`💬 Megumin identified chat-only intent, skipping search`);
+    console.log(`💬 miku identified chat-only intent, skipping search`);
   }
 
   return {
-    meguminResponse,
+    mikuResponse,
     search: searchResult,
     searchType,
   };

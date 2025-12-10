@@ -104,7 +104,7 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, () => {
   console.log(`
-🍯 Honey Backend Server (Megumin AI)
+🍯 Honey Backend Server (miku AI)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📡 HTTP: http://localhost:${PORT}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

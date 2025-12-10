@@ -8,7 +8,7 @@ This document describes all API endpoints required by the frontend application.
 |----------|---------|-------------|
 | `REACT_APP_BASE_URL` | `http://14.225.217.119:8082` | Retrieval Backend URL |
 | `REACT_APP_BASE_IMAGE_URL` | `http://14.225.217.119:8081` | Image Server URL |
-| `REACT_APP_HONEY_BE_URL` | `http://localhost:3001` | Honey Backend (Megumin AI + TTS) |
+| `REACT_APP_HONEY_BE_URL` | `http://localhost:3001` | Honey Backend (miku AI + TTS) |
 
 ---
 
@@ -139,7 +139,7 @@ This document describes all API endpoints required by the frontend application.
 
 ---
 
-## 2. Honey Backend (HONEY_BE_URL) - Megumin AI
+## 2. Honey Backend (HONEY_BE_URL) - miku AI
 
 ### 2.1 Smart Chat (Query Classification + Response)
 **Endpoint:** `POST /api/speech/chat/smart`
@@ -171,8 +171,8 @@ This document describes all API endpoints required by the frontend application.
       "genre": ["horror", "comedy"]
     },
     "intent": "SEARCH | CHAT",
-    "meguminResponse": {
-      "text": "Megumin's response text",
+    "mikuResponse": {
+      "text": "miku's response text",
       "mood": "happy | thinking | excited | sad"
     },
     "audio": {
@@ -250,7 +250,7 @@ type ClusterMode = "timeline" | "location" | "moment" | "video";
 ```
 **Note:** Currently fixed to `"moment"` in the frontend.
 
-### SearchType (from Megumin classification)
+### SearchType (from miku classification)
 ```typescript
 type SearchType = "TEXT" | "TEMPORAL" | "FILTER" | "IMAGE" | "NONE";
 ```

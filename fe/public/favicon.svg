@@ -5,7 +5,7 @@
   <!-- 2. The Hat Cone (Floppy Wizard Style) -->
   <path d="M12 54 Q 32 -10 52 54" fill="#2D2D2D" stroke="#000" stroke-width="2"/>
   
-  <!-- 3. The Red Band (Signature Megumin Color) -->
+  <!-- 3. The Red Band (Signature miku Color) -->
   <path d="M17 44 Q 32 38 47 44 L 49 54 Q 32 58 15 54 Z" fill="#E53935" stroke="#000" stroke-width="1"/>
   
   <!-- 4. The Gold "Buckle" (Represents Magic/Quality) -->
