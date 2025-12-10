@@ -29,41 +29,29 @@ declare global {
 
 // Motion mapping - Extended with all available emotions
 const MOOD_TO_MOTION: { [key: string]: string } = {
+  // Primary moods
   happy: 'motions/02_fun.motion3.json',
-  fun: 'motions/02_fun.motion3.json',
   excited: 'motions/I_fun_motion_01.motion3.json',
-  angry: 'motions/I_angry_motion_01.motion3.json',
+  concerned: 'motions/04_sad.motion3.json',
   pouty: 'motions/01_angry.motion3.json',
-  sad: 'motions/I_f_sad__motion_01.motion3.json',
+  encouraging: 'motions/02_fun.motion3.json',
+  thinking: 'motions/00_nomal.motion3.json',
   surprised: 'motions/03_surprised.motion3.json',
-  f_surprised: 'motions/I_f_surprised_motion_01.motion3.json',
+  sad: 'motions/I_f_sad__motion_01.motion3.json',
+  angry: 'motions/I_angry_motion_01.motion3.json',
+  neutral: 'motions/00_nomal.motion3.json',
+  
+  // Additional emotions from folder
   sleep: 'motions/05_sleep.motion3.json',
   sleepy: 'motions/05_sleep.motion3.json',
   shy: 'motions/07_tere.motion3.json',
   embarrassed: 'motions/07_tere.motion3.json',
   blush: 'motions/07_tere.motion3.json',
-  tojime: 'motions/06_tojime.motion3.json',
-  repeat: 'motions/I_repeat_motion_01.motion3.json',
   idle: 'motions/I_idling_motion_01.motion3.json',
   normal: 'motions/00_nomal.motion3.json',
-  thinking: 'motions/00_nomal.motion3.json',
-  concerned: 'motions/04_sad.motion3.json',
-  encouraging: 'motions/02_fun.motion3.json',
-  // Direct access for all files
-  motion_00_nomal: 'motions/00_nomal.motion3.json',
-  motion_01_angry: 'motions/01_angry.motion3.json',
-  motion_02_fun: 'motions/02_fun.motion3.json',
-  motion_03_surprised: 'motions/03_surprised.motion3.json',
-  motion_04_sad: 'motions/04_sad.motion3.json',
-  motion_05_sleep: 'motions/05_sleep.motion3.json',
-  motion_06_tojime: 'motions/06_tojime.motion3.json',
-  motion_07_tere: 'motions/07_tere.motion3.json',
-  motion_I_angry_motion_01: 'motions/I_angry_motion_01.motion3.json',
-  motion_I_f_sad_motion_01: 'motions/I_f_sad__motion_01.motion3.json',
-  motion_I_f_surprised_motion_01: 'motions/I_f_surprised_motion_01.motion3.json',
-  motion_I_fun_motion_01: 'motions/I_fun_motion_01.motion3.json',
-  motion_I_idling_motion_01: 'motions/I_idling_motion_01.motion3.json',
-  motion_I_repeat_motion_01: 'motions/I_repeat_motion_01.motion3.json',
+  fun: 'motions/02_fun.motion3.json',
+  repeat: 'motions/I_repeat_motion_01.motion3.json',
+  tojime: 'motions/06_tojime.motion3.json', // Closing eyes/bashful
 };
 
 const Live2DCanvas = forwardRef<Live2DCanvasRef, Live2DCanvasProps>(({ mood = 'neutral', isSpeaking = false, onReady }, ref) => {
@@ -92,7 +80,9 @@ const Live2DCanvas = forwardRef<Live2DCanvasRef, Live2DCanvasProps>(({ mood = 'n
   const idleAnimationRafRef = useRef<number | null>(null);
   
   // Blinking state
-  // Blinking state removed; handled by idle motion file
+  const blinkIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isBlinkingRef = useRef(false);
+  const blinkStartTimeRef = useRef(0);
 
   const applyMouthOpen = useCallback((value: number) => {
     try {
@@ -331,14 +321,123 @@ const Live2DCanvas = forwardRef<Live2DCanvasRef, Live2DCanvasProps>(({ mood = 'n
   }, [startSmoothTracking]);
 
   const startIdleAnimation = useCallback(() => {
-    // Play the idle motion using the motion3.json file
-    if (modelRef.current) {
+    // Start blinking timer (blink every 3-6 seconds randomly)
+    const scheduleBlink = () => {
+      const nextBlinkDelay = 3000 + Math.random() * 3000; // 3-6 seconds
+      blinkIntervalRef.current = setTimeout(() => {
+        isBlinkingRef.current = true;
+        blinkStartTimeRef.current = performance.now();
+        scheduleBlink(); // Schedule next blink
+      }, nextBlinkDelay);
+    };
+    scheduleBlink();
+
+    const animateIdle = () => {
       try {
-        modelRef.current.motion('motions/I_idling_motion_01.motion3.json');
+        if (!modelRef.current?.internalModel?.coreModel) {
+          idleAnimationRafRef.current = null;
+          return;
+        }
+
+        const model = modelRef.current.internalModel.coreModel;
+        const params = model.parameters || model._model?.parameters;
+
+        if (!params || !params.ids || !params.values) {
+          idleAnimationRafRef.current = null;
+          return;
+        }
+
+        const time = performance.now() * 0.001; // Convert to seconds
+
+        // === BLINKING ANIMATION ===
+        // Blink duration is ~150ms (close) + ~100ms (open)
+        const blinkDuration = 250; // Total blink duration in ms
+        let eyeOpenValue = 1; // Default: eyes fully open
+
+        if (isBlinkingRef.current) {
+          const blinkElapsed = performance.now() - blinkStartTimeRef.current;
+          
+          if (blinkElapsed < 100) {
+            // Closing phase (0-100ms)
+            eyeOpenValue = 1 - (blinkElapsed / 100);
+          } else if (blinkElapsed < 150) {
+            // Closed phase (100-150ms)
+            eyeOpenValue = 0;
+          } else if (blinkElapsed < blinkDuration) {
+            // Opening phase (150-250ms)
+            eyeOpenValue = (blinkElapsed - 150) / 100;
+          } else {
+            // Blink complete
+            isBlinkingRef.current = false;
+            eyeOpenValue = 1;
+          }
+        }
+
+        // Apply eye open values
+        const eyeOpenParams = ['ParamEyeLOpen', 'ParamEyeROpen', 'PARAM_EYE_L_OPEN', 'PARAM_EYE_R_OPEN', 'ParamEyeOpen'];
+        for (const paramName of eyeOpenParams) {
+          const idx = params.ids.indexOf(paramName);
+          if (idx !== -1) {
+            params.values[idx] = eyeOpenValue;
+          }
+        }
+
+        // Very subtle idle body sway
+        const swayValue = Math.sin(time * 0.3) * 2; // Slow, subtle movement
+
+        // Apply subtle idle movements to body
+        const bodyXParams = ['ParamBodyAngleX', 'PARAM_BODY_ANGLE_X', 'ParamBodyX'];
+        for (const paramName of bodyXParams) {
+          const idx = params.ids.indexOf(paramName);
+          if (idx !== -1 && Math.abs(params.values[idx]) < 5) { // Only if not actively tracking
+            params.values[idx] = swayValue;
+            break;
+          }
+        }
+
+        // Add subtle idle cloth movement
+        const clothSwayX = Math.sin(time * 0.4) * 0.1; // Very subtle cloth sway
+        const clothSwayY = Math.sin(time * 0.6) * 0.05; // Even subtler vertical movement
+
+        const clothXParams = ['ParamCloth1', 'PARAM_CLOTH_1', 'ParamPhysics1', 'ParamClothX'];
+        const clothYParams = ['ParamCloth2', 'PARAM_CLOTH_2', 'ParamPhysics2', 'ParamClothY'];
+
+        for (const paramName of clothXParams) {
+          const idx = params.ids.indexOf(paramName);
+          if (idx !== -1 && Math.abs(params.values[idx]) < 0.2) { // Only if not actively tracking
+            params.values[idx] = clothSwayX;
+            break;
+          }
+        }
+
+        for (const paramName of clothYParams) {
+          const idx = params.ids.indexOf(paramName);
+          if (idx !== -1 && Math.abs(params.values[idx]) < 0.1) { // Only if not actively tracking
+            params.values[idx] = clothSwayY;
+            break;
+          }
+        }
+
+        // Subtle breathing
+        const breathValue = Math.sin(time * 1.5) * 0.15 + 0.1; // Breathing pattern
+
+        const breathParams = ['ParamBreath', 'PARAM_BREATH'];
+        for (const paramName of breathParams) {
+          const idx = params.ids.indexOf(paramName);
+          if (idx !== -1) {
+            params.values[idx] = breathValue;
+            break;
+          }
+        }
+
+        idleAnimationRafRef.current = requestAnimationFrame(animateIdle);
       } catch (e) {
-        console.warn('Idle motion error:', e);
+        console.warn('Idle animation error:', e);
+        idleAnimationRafRef.current = null;
       }
-    }
+    };
+
+    idleAnimationRafRef.current = requestAnimationFrame(animateIdle);
   }, []);
 
   const handleCursorMove = useCallback((clientX: number, clientY: number) => {
@@ -671,7 +770,12 @@ const Live2DCanvas = forwardRef<Live2DCanvasRef, Live2DCanvasProps>(({ mood = 'n
         cancelAnimationFrame(idleAnimationRafRef.current);
         idleAnimationRafRef.current = null;
       }
-      // Blinking cleanup removed; handled by idle motion file
+      // Clear blinking timer
+      if (blinkIntervalRef.current) {
+        clearTimeout(blinkIntervalRef.current);
+        blinkIntervalRef.current = null;
+      }
+      isBlinkingRef.current = false;
     },
   }), [startMouthAnimation, stopMouthAnimation, stopLipSync, startLipSync, startEyeTracking, resetGazePosition, startIdleAnimation]);
 
@@ -846,7 +950,11 @@ const Live2DCanvas = forwardRef<Live2DCanvasRef, Live2DCanvasProps>(({ mood = 'n
         cancelAnimationFrame(idleAnimationRafRef.current);
         idleAnimationRafRef.current = null;
       }
-      // Blinking cleanup removed; handled by idle motion file
+      // Clear blinking timer
+      if (blinkIntervalRef.current) {
+        clearTimeout(blinkIntervalRef.current);
+        blinkIntervalRef.current = null;
+      }
       if (app) {
         app.destroy(true, { children: true });
       }
