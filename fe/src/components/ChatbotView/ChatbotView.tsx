@@ -82,7 +82,7 @@ interface ChatbotViewProps {
 }
 
 // Fixed to SigLip2 model
-const SEARCH_MODEL = 'siglip2_production_1152';
+const SEARCH_MODEL = 'clip_production_1024';
 
 const ChatbotView: React.FC<ChatbotViewProps> = ({
   dark,

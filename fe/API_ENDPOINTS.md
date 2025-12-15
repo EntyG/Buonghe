@@ -22,7 +22,7 @@ This document describes all API endpoints required by the frontend application, 
 {
   "text": "a man walking in the rain",
   "mode": "moment",
-  "collection": "siglip2_production_1152",
+  "collection": "clip_production_1024",
   "top_k": 256,
   "state_id": "optional_previous_state_id"
 }
@@ -62,7 +62,7 @@ This document describes all API endpoints required by the frontend application, 
 |-------|------|----------|-------------|
 | `files` | File | Yes | Image file to search |
 | `mode` | string | Yes | Clustering mode: `moment` |
-| `collection` | string | Yes | Model collection: `siglip2_production_1152` |
+| `collection` | string | Yes | Model collection: `clip_production_1024` |
 | `state_id` | string | No | Previous search state for continuation |
 
 **Response:** Same as Text Search
@@ -83,7 +83,7 @@ This document describes all API endpoints required by the frontend application, 
 **`req` JSON structure:**
 ```json
 {
-  "collection": "siglip2_production_1152",
+  "collection": "clip_production_1024",
   "state_id": "optional_state_id",
   "before": { "text": "scene description before" },
   "now": { "text": "main event description" },
@@ -197,7 +197,7 @@ This document describes all API endpoints required by the frontend application, 
   },
   "text": "person walking",
   "top_k": 256,
-  "collection": "siglip2_production_1152",
+  "collection": "clip_production_1024",
   "state_id": "optional_previous_state_id"
 }
 ```

@@ -127,7 +127,7 @@ Folder purposes:
   - `isTemporalMode: boolean` — tracks whether temporal search mode is active (disables mode switching)
   - `loading: boolean` — in-flight request guard for search/mode changes
   - `dark: boolean` — theme mode
-  - `model: string` — collection/model key, e.g., `clip_production_1024` or `siglip2_production_1152`
+  - `model: string` — collection/model key, e.g., `clip_production_1024` or `clip_production_1024`
 
 - **State ID (`state_id`) Management**:
   - **Purpose**: The `state_id` is used for **feature feedback** and **restoring previous search context**, not for continuing conversation threads
