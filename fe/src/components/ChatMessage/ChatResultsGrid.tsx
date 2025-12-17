@@ -66,12 +66,16 @@ const ChatResultsGrid: React.FC<ChatResultsGridProps> = ({
       // Use getListClusterImages to get URLs for this cluster
       // getListClusterImages is async, but image_list is small and sync for local usage
       // So we use the sync logic here for now
-      const urls = cluster.image_list.map((img) => {
+      const paths = cluster.image_list.map((img) => {
         const BASE_IMAGE_URL = process.env.REACT_APP_BASE_IMAGE_URL || 'http://14.225.217.119:8081';
         return `${BASE_IMAGE_URL}${img.path}`;
       });
       cluster.image_list.forEach((item, idx) => {
-        arr.push({ item, clusterName: cluster.cluster_name, imageUrl: urls[idx] });
+        arr.push({
+          item: { ...item, url: cluster.url },
+          clusterName: cluster.cluster_name,
+          imageUrl: paths[idx],
+        });
       });
     });
     return arr;

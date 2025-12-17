@@ -11,6 +11,7 @@ export interface ImageItem {
   frameNumber?: number;
   // Temporal search position
   temporalPosition?: 'before' | 'now' | 'after';
+  url?: string|null;
 }
 
 export interface VideoGroup {

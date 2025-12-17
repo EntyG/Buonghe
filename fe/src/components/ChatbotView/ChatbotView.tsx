@@ -64,6 +64,8 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import MovieIcon from '@mui/icons-material/Movie';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import ImageIcon from '@mui/icons-material/Image';
+import MicOffIcon from '@mui/icons-material/MicOff';
+import MicIcon from '@mui/icons-material/Mic';
 
 interface ConversationItem {
   id: string;
@@ -102,6 +104,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
   const [pastedImage, setPastedImage] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [chatSessionId] = useState(() => `session_${Date.now()}`);  // Unique session for AI chat
+  const [isVoiceChatOpen, setIsVoiceChatOpen] = useState(false);
 
   // Image zoom modal state
   const [zoomedImage, setZoomedImage] = useState<{ url: string; item: ImageItem } | null>(null);
@@ -650,8 +653,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
                 e.target.value = ''; // Reset to allow same file selection
               }}
             />
-
-            {/* Image upload button */}
+            
             <Tooltip title="Upload image for visual search">
               <IconButton
                 onClick={() => fileInputRef.current?.click()}
@@ -678,6 +680,43 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
               disabled={loading}
               style={pastedImage ? { cursor: 'pointer', opacity: 1 } : undefined}
             />
+
+            {!isVoiceChatOpen && (
+            <Tooltip title="Voice chat">
+              <IconButton
+                onClick={() => {
+                  fileInputRef.current?.click()
+                  setIsVoiceChatOpen(true);
+                }}
+                disabled={loading || !!pastedImage}
+                sx={{
+                  color: 'text.secondary',
+                  mr: 0.5,
+                  '&:hover': { color: 'primary.main' },
+                }}
+              >
+                <MicOffIcon />
+              </IconButton>
+            </Tooltip>)}
+
+            {isVoiceChatOpen && (
+              <Tooltip title="Voice chat">
+              <IconButton
+                onClick={() => {
+                  fileInputRef.current?.click()
+                  setIsVoiceChatOpen(false);
+                }}
+                disabled={loading || !!pastedImage}
+                sx={{
+                  color: 'text.secondary',
+                  mr: 0.5,
+                  '&:hover': { color: 'primary.main' },
+                }}
+              >
+                <MicIcon />
+              </IconButton>
+            </Tooltip>)}
+              
 
             <SendButtonStyled
               type="submit"
@@ -818,9 +857,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
                     color="primary"
                     startIcon={<PlayArrowIcon />}
                     onClick={() => {
-                      // TODO: Replace with actual movie URL when backend is ready
-                      const movieUrl = `https://example.com/watch/${zoomedImage.item.videoId || 'movie'}?t=${zoomedImage.item.time_in_seconds || 0}`;
-                      window.open(movieUrl, '_blank');
+                      window.open(zoomedImage.item.url || '', '_blank');
                     }}
                     sx={{
                       textTransform: 'none',
