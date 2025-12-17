@@ -18,6 +18,22 @@ class MikuService {
     this.client = null;
     this.elevenLabs = null;
     this.conversationHistory = new Map();
+    this.lastRequestTime = 0;
+    this.minRequestInterval = 4000; // Minimum 4 seconds between Gemini requests
+  }
+
+  /**
+   * Wait to avoid rate limiting
+   */
+  async waitForRateLimit() {
+    const now = Date.now();
+    const timeSinceLastRequest = now - this.lastRequestTime;
+    if (timeSinceLastRequest < this.minRequestInterval) {
+      const waitTime = this.minRequestInterval - timeSinceLastRequest;
+      console.log(`⏳ Rate limit: waiting ${waitTime}ms before next Gemini request...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+    this.lastRequestTime = Date.now();
   }
 
   /**
@@ -28,7 +44,7 @@ class MikuService {
       throw new Error('GEMINI_API_KEY is not configured');
     }
     this.client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    
+
     if (process.env.ELEVENLABS_API_KEY) {
       this.elevenLabs = new ElevenLabsClient({
         apiKey: process.env.ELEVENLABS_API_KEY
@@ -37,7 +53,7 @@ class MikuService {
     } else {
       console.warn('⚠️ ELEVENLABS_API_KEY not set - TTS will use fallback');
     }
-    
+
     return this;
   }
 
@@ -57,6 +73,9 @@ class MikuService {
     } = options;
 
     try {
+      // Rate limiting - wait before making request
+      await this.waitForRateLimit();
+
       console.log('🔍 Classifying query with Gemini...');
       console.log(`📝 User message: "${userMessage}"`);
 
@@ -67,7 +86,7 @@ class MikuService {
 
       const systemPrompt = this.getClassificationPrompt();
 
-      const geminiModel = this.client.getGenerativeModel({ 
+      const geminiModel = this.client.getGenerativeModel({
         model,
         systemInstruction: systemPrompt,
         generationConfig: {
@@ -137,10 +156,10 @@ class MikuService {
     const filterOcrMatch = responseText.match(/\[FILTER_OCR:\s*([^\]]+)\]/i);
     const filterGenreMatch = responseText.match(/\[FILTER_GENRE:\s*([^\]]+)\]/i);
     const moodMatch = responseText.match(/\[MOOD:\s*(\w+)\]/i);
-    const responseMatch = responseText.match(/\[RESPONSE:\s*([^\]]+(?:\][^\[]*)*)\]/i) || 
-                         responseText.match(/\[RESPONSE:\s*([\s\S]*?)(?:\[|$)/i);
+    const responseMatch = responseText.match(/\[RESPONSE:\s*([^\]]+(?:\][^\[]*)*)\]/i) ||
+      responseText.match(/\[RESPONSE:\s*([\s\S]*?)(?:\[|$)/i);
     const responseJpMatch = responseText.match(/\[RESPONSE_JP:\s*([^\]]+(?:\][^\[]*)*)\]/i) ||
-                           responseText.match(/\[RESPONSE_JP:\s*([\s\S]*?)(?:\[|$)/i);
+      responseText.match(/\[RESPONSE_JP:\s*([\s\S]*?)(?:\[|$)/i);
 
     const intent = intentMatch ? intentMatch[1].toUpperCase() : 'CHAT';
     let searchType = searchTypeMatch ? searchTypeMatch[1].toUpperCase() : 'NONE';
@@ -155,13 +174,13 @@ class MikuService {
       const beforeText = temporalBeforeMatch ? temporalBeforeMatch[1].trim() : null;
       const nowText = temporalNowMatch ? temporalNowMatch[1].trim() : null;
       const afterText = temporalAfterMatch ? temporalAfterMatch[1].trim() : null;
-      
+
       temporalQuery = {
         before: beforeText && beforeText.toLowerCase() !== 'none' ? beforeText : null,
         now: nowText && nowText.toLowerCase() !== 'none' ? nowText : null,
         after: afterText && afterText.toLowerCase() !== 'none' ? afterText : null
       };
-      
+
       console.log('⏰ Temporal query parsed:', temporalQuery);
     }
 
@@ -176,11 +195,11 @@ class MikuService {
     // Always try to parse filter fields (OCR and Genre only)
     const ocrFilters = parseFilterArray(filterOcrMatch);
     const genreFilters = parseFilterArray(filterGenreMatch);
-    
+
     // Build filterQuery if any filter has data
     let filterQuery = null;
     const hasFilterData = ocrFilters.length > 0 || genreFilters.length > 0;
-    
+
     if (hasFilterData) {
       filterQuery = {
         ocr: ocrFilters,
@@ -397,7 +416,7 @@ Ending: Try to end responses with a cheerful vibe or a musical note (♪).
       return {
         text: "Sugoi! The search results are overflowing like a sold-out stadium! So much data, Master! ♪",
         textJapanese: "すごいっ！満員のライブ会場みたいだよ〜！データがいっぱい見つかったよ、マスター！",
-        mood: "energetic" 
+        mood: "energetic"
       };
     } else if (resultCount > 20) {
       return {
@@ -481,7 +500,7 @@ Ending: Try to end responses with a cheerful vibe or a musical note (♪).
 
       const filename = `elevenlabs-tts-${uuidv4()}.mp3`;
       const filepath = path.join(outputDir, filename);
-      
+
       fs.writeFileSync(filepath, audioBuffer);
 
       const duration = this.estimateDuration(ttsText, true);
@@ -552,7 +571,7 @@ Ending: Try to end responses with a cheerful vibe or a musical note (♪).
 
     chars.forEach((char, index) => {
       let viseme = 'REST';
-      
+
       for (const [v, chars_list] of Object.entries(phonemeGroups)) {
         if (chars_list.includes(char)) {
           viseme = v;

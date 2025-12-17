@@ -81,8 +81,8 @@ interface ChatbotViewProps {
   onToggleTheme: () => void;
 }
 
-// Fixed to SigLip2 model
-const SEARCH_MODEL = 'clip_production_1024';
+// Collection name for CLIP ViT-B/32 model
+const SEARCH_MODEL = 'default';
 
 const ChatbotView: React.FC<ChatbotViewProps> = ({
   dark,
@@ -91,7 +91,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
   const dispatch = useDispatch();
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const messages = useSelector((state: RootState) => state.chat.messages);
-  
+
   // State
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -102,17 +102,17 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
   const [pastedImage, setPastedImage] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [chatSessionId] = useState(() => `session_${Date.now()}`);  // Unique session for AI chat
-  
+
   // Image zoom modal state
   const [zoomedImage, setZoomedImage] = useState<{ url: string; item: ImageItem } | null>(null);
-  
+
   // Live2D state
   const live2dRef = useRef<any>(null);
   const [isModelReady, setIsModelReady] = useState(false);
   const [currentMood, setCurrentMood] = useState('neutral');
   const [isSpeaking, setIsSpeaking] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  
+
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -160,38 +160,38 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
     if (audioRef.current) {
       audioRef.current.pause();
     }
-    
+
     const audio = new Audio(audioUrl);
     audioRef.current = audio;
-    
+
     // Extract filename for cleanup
     const filename = audioUrl.split('/').pop();
-    
+
     audio.onplay = () => {
       setIsSpeaking(true);
       if (live2dRef.current?.startSpeaking) {
         live2dRef.current.startSpeaking(lipSyncData);
       }
     };
-    
+
     audio.onended = () => {
       setIsSpeaking(false);
       if (live2dRef.current?.stopSpeaking) {
         live2dRef.current.stopSpeaking();
       }
-      
+
       // Delete audio file after playback to save disk space
       if (filename && filename.startsWith('elevenlabs-tts-')) {
         fetch(`${HONEY_BE_URL}/api/speech/audio/${filename}`, { method: 'DELETE' })
           .catch(err => console.warn('Audio cleanup failed:', err));
       }
     };
-    
+
     audio.onerror = () => {
       setIsSpeaking(false);
       console.warn('Audio playback error');
     };
-    
+
     audio.play().catch(err => {
       console.warn('Audio autoplay blocked:', err);
       setIsSpeaking(false);
@@ -213,7 +213,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
     };
 
     dispatch(addMessage(newMessage));
-    
+
     // Add to conversations with loading state
     const convId = uuidv4();
     setConversations(prev => [...prev, {
@@ -221,7 +221,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
       message: newMessage,
       isLoading: true,
     }]);
-    
+
     setInput('');
     setLoading(true);
     updateMood('thinking');
@@ -241,17 +241,17 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
       const wasSearch = mikuData.isSearchQuery && searchResult !== null;
 
       // Update conversation with results and miku's response
-      setConversations(prev => prev.map(c => 
-        c.id === convId 
-          ? { 
-              ...c, 
-              results: searchResult?.results || [], 
-              botResponse: mikuData.mikuResponse.text, 
-              mikuResponse: mikuData,
-              wasSearchQuery: wasSearch,
-              searchType: searchType,
-              isLoading: false 
-            }
+      setConversations(prev => prev.map(c =>
+        c.id === convId
+          ? {
+            ...c,
+            results: searchResult?.results || [],
+            botResponse: mikuData.mikuResponse.text,
+            mikuResponse: mikuData,
+            wasSearchQuery: wasSearch,
+            searchType: searchType,
+            isLoading: false
+          }
           : c
       ));
 
@@ -259,14 +259,14 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
       if (searchResult) {
         setLatestStateId(searchResult.state_id);
       }
-      
+
       updateMood(mikuData.mikuResponse.mood || 'neutral');
 
       // Play miku's voice if available
       if (mikuData.audio?.url && !mikuData.useFallbackAudio) {
         // Audio URL from honey-be is relative, prepend the server URL
-        const fullAudioUrl = mikuData.audio.url.startsWith('http') 
-          ? mikuData.audio.url 
+        const fullAudioUrl = mikuData.audio.url.startsWith('http')
+          ? mikuData.audio.url
           : `${HONEY_BE_URL}${mikuData.audio.url}`;
         playMikuAudio(fullAudioUrl, mikuData.avatar?.lipSync);
       }
@@ -276,14 +276,14 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
         try {
           const sugRes = await getRephraseSuggestions(mikuData.searchQuery, message_ref);
           dispatch(setSuggestions({ message_ref, suggestions: sugRes.variants || [] }));
-          
+
           // Update conversation with suggestions
-          setConversations(prev => prev.map(c => 
-            c.id === convId 
-              ? { 
-                  ...c, 
-                  message: { ...c.message, suggestions: sugRes.variants || [] } 
-                }
+          setConversations(prev => prev.map(c =>
+            c.id === convId
+              ? {
+                ...c,
+                message: { ...c.message, suggestions: sugRes.variants || [] }
+              }
               : c
           ));
         } catch {
@@ -293,14 +293,14 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
 
     } catch (e) {
       console.error('Smart search error:', e);
-      setConversations(prev => prev.map(c => 
-        c.id === convId 
-          ? { 
-              ...c, 
-              results: [], 
-              botResponse: "Oops! Something went wrong. Please try again.",
-              isLoading: false 
-            }
+      setConversations(prev => prev.map(c =>
+        c.id === convId
+          ? {
+            ...c,
+            results: [],
+            botResponse: "Oops! Something went wrong. Please try again.",
+            isLoading: false
+          }
           : c
       ));
       updateMood('sad');
@@ -312,7 +312,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
   // Handle visual search
   const handleVisualSearch = async (imageFile: File) => {
     const storedImage = await fileToStoredImage(imageFile);
-    
+
     const message_ref = uuidv4();
     const newMessage: ChatMessage = {
       message_ref,
@@ -322,16 +322,16 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
       searchType: 'visual',
       searchData: { image: storedImage },
     };
-    
+
     dispatch(addMessage(newMessage));
-    
+
     const convId = uuidv4();
     setConversations(prev => [...prev, {
       id: convId,
       message: newMessage,
       isLoading: true,
     }]);
-    
+
     setPastedImage(null);
     setLoading(true);
     updateMood('thinking');
@@ -339,28 +339,28 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
     try {
       // Step 1: Perform visual search
       const res = await visualSearch(imageFile, mode, SEARCH_MODEL, latestStateId);
-      
+
       const totalImages = res.results.reduce((acc, c) => acc + c.image_list.length, 0);
-      
+
       // Step 2: Get miku's reaction with voice
       let botText = '';
       let mood = 'happy';
-      
+
       try {
         const reactionResponse = await getVisualSearchReaction(
           totalImages,
           res.results.length,
           chatSessionId
         );
-        
+
         const reactionData = reactionResponse.data;
         botText = reactionData.mikuResponse.text;
         mood = reactionData.mikuResponse.mood || 'happy';
-        
+
         // Play miku's voice if available
         if (reactionData.audio?.url && !reactionData.useFallbackAudio) {
-          const fullAudioUrl = reactionData.audio.url.startsWith('http') 
-            ? reactionData.audio.url 
+          const fullAudioUrl = reactionData.audio.url.startsWith('http')
+            ? reactionData.audio.url
             : `${HONEY_BE_URL}${reactionData.audio.url}`;
           // Avatar lipSync has visemes nested inside
           const lipSyncData = (reactionData.avatar as any)?.lipSync?.visemes;
@@ -374,16 +374,16 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
         mood = fallback.mood;
       }
 
-      setConversations(prev => prev.map(c => 
-        c.id === convId 
-          ? { 
-              ...c, 
-              results: res.results, 
-              botResponse: botText, 
-              isLoading: false,
-              wasSearchQuery: true,
-              searchType: 'IMAGE' as const,
-            }
+      setConversations(prev => prev.map(c =>
+        c.id === convId
+          ? {
+            ...c,
+            results: res.results,
+            botResponse: botText,
+            isLoading: false,
+            wasSearchQuery: true,
+            searchType: 'IMAGE' as const,
+          }
           : c
       ));
 
@@ -395,8 +395,8 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
       }
     } catch (e) {
       console.error('Visual search error:', e);
-      setConversations(prev => prev.map(c => 
-        c.id === convId 
+      setConversations(prev => prev.map(c =>
+        c.id === convId
           ? { ...c, results: [], botResponse: "I couldn't analyze that image. Try another one!", isLoading: false }
           : c
       ));
@@ -498,7 +498,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
           {currentMood.charAt(0).toUpperCase() + currentMood.slice(1)}
           {isSpeaking && ' 🗣️'}
         </MoodIndicator>
-        
+
         <Live2DContainer>
           {!isModelReady && (
             <Box
@@ -524,7 +524,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
             onReady={handleModelReady}
           />
         </Live2DContainer>
-        
+
         <CharacterInfo>
           <h3>Hatsune Miku</h3>
           <p>Your Movie Retrieval Assistant</p>
@@ -538,7 +538,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
           <HeaderTitle>
             <h1>Movie Search Chat</h1>
           </HeaderTitle>
-          
+
           <HeaderControls>
             <Tooltip title={dark ? 'Light Mode' : 'Dark Mode'}>
               <IconButton onClick={onToggleTheme} size="small">
@@ -555,7 +555,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
               <WelcomeIcon>🎬</WelcomeIcon>
               <h2>Welcome!</h2>
               <p>{generateGreeting()}</p>
-              
+
               {quickActions.length > 0 && (
                 <>
                   <Box sx={{ fontSize: '0.9rem', color: 'text.secondary', mb: 2 }}>
@@ -593,7 +593,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
                   feedbackMap={feedbackMap}
                 />
               ))}
-              
+
               {loading && (
                 <TypingIndicator>
                   <span></span>
@@ -601,7 +601,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
                   <span></span>
                 </TypingIndicator>
               )}
-              
+
               <div ref={messagesEndRef} />
             </>
           )}
@@ -633,7 +633,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
               </IconButton>
             </Box>
           )}
-          
+
           <InputContainer onSubmit={handleSubmit}>
             {/* Hidden file input */}
             <input
@@ -650,7 +650,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
                 e.target.value = ''; // Reset to allow same file selection
               }}
             />
-            
+
             {/* Image upload button */}
             <Tooltip title="Upload image for visual search">
               <IconButton
@@ -665,7 +665,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
                 <ImageIcon />
               </IconButton>
             </Tooltip>
-            
+
             <ChatTextarea
               ref={textareaRef}
               value={pastedImage ? '' : input}
@@ -677,7 +677,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
               disabled={loading || !!pastedImage}
               style={pastedImage ? { cursor: 'not-allowed', opacity: 0.6 } : undefined}
             />
-            
+
             <SendButtonStyled
               type="submit"
               $disabled={loading || (!input.trim() && !pastedImage)}
@@ -690,7 +690,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
               )}
             </SendButtonStyled>
           </InputContainer>
-          
+
           <InputActions>
             <Box sx={{ fontSize: '0.75rem', color: 'text.secondary', opacity: 0.7 }}>
               Paste image (Ctrl+V) for visual search • Describe scenes naturally
@@ -750,7 +750,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
                       height: 32,
                       backdropFilter: 'blur(4px)',
                       border: '1px solid rgba(255,255,255,0.2)',
-                      '&:hover': { 
+                      '&:hover': {
                         bgcolor: 'rgba(0,0,0,0.8)',
                         transform: 'scale(1.1)',
                       },

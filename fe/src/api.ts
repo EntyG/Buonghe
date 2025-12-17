@@ -18,7 +18,7 @@ export const HONEY_BE_URL =
 // MOCK MODE - Set to false when retrieval backend is working
 // This only affects retrieval BE, Honey BE (miku AI) remains real
 // ═══════════════════════════════════════════════════════════════════════
-const USE_MOCK_RETRIEVAL = true;
+const USE_MOCK_RETRIEVAL = false;
 
 // Random image services for mock data
 const RANDOM_IMAGE_SERVICES = [
@@ -154,7 +154,7 @@ export const searchClusters = async (
   };
 
   console.log(payload);
-  const res = await axios.post(`${BASE_URL}/search/text`, payload);
+  const res = await axios.post(`${BASE_URL}/api/text`, payload);
   return res.data as SearchResponse;
 };
 
@@ -177,7 +177,7 @@ export const getRephraseSuggestions = async (
     };
   }
 
-  const res = await axios.post(`${BASE_URL}/chat/rephrase/suggestion`, {
+  const res = await axios.post(`${BASE_URL}/api/chat/rephrase/suggestion`, {
     text,
     message_ref,
   });
@@ -192,7 +192,7 @@ export const postChatFilter = async (payload: any): Promise<any> => {
     return generateMockSearchResults("filtered", "moment");
   }
 
-  const res = await axios.post(`${BASE_URL}/chat/filter`, payload);
+  const res = await axios.post(`${BASE_URL}/api/chat/filter`, payload);
   return res.data;
 };
 
@@ -264,7 +264,7 @@ export const filterSearch = async (
     collection
   };
 
-  const res = await axios.post(`${BASE_URL}/search/filter`, requestPayload);
+  const res = await axios.post(`${BASE_URL}/api/filter`, requestPayload);
   return res.data as SearchResponse;
 };
 
@@ -292,7 +292,7 @@ export const visualSearch = async (
   }
 
   const response = await axios.post<SearchResponse>(
-    `${BASE_URL}/search/visual`,
+    `${BASE_URL}visual`,
     formData,
     {
       headers: {
@@ -374,7 +374,7 @@ export const temporalSearch = async (
   }
 
   const response = await axios.post<SearchResponse>(
-    `${BASE_URL}/search/visual/temporal`,
+    `${BASE_URL}/temporal`,
     formData,
     {
       headers: {
