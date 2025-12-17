@@ -72,7 +72,10 @@ const ChatResultsGrid: React.FC<ChatResultsGridProps> = ({
       });
       cluster.image_list.forEach((item, idx) => {
         arr.push({
-          item: { ...item, url: cluster.url },
+          item: { 
+            ...item, 
+            url: (cluster.url ?? '') + "#autoseek=" + (item.time_in_seconds !== undefined ? item.time_in_seconds : '') 
+          },
           clusterName: cluster.cluster_name,
           imageUrl: paths[idx],
         });

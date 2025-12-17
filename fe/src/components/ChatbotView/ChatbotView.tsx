@@ -105,6 +105,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [chatSessionId] = useState(() => `session_${Date.now()}`);  // Unique session for AI chat
   const [isVoiceChatOpen, setIsVoiceChatOpen] = useState(false);
+  const recognitionRef = useRef<any>(null);
 
   // Image zoom modal state
   const [zoomedImage, setZoomedImage] = useState<{ url: string; item: ImageItem } | null>(null);
@@ -486,6 +487,52 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
     setZoomedImage(null);
   };
 
+  // Voice recognition functions
+  const startListening = () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      alert('Speech recognition not supported. I can\'t hear you!');
+      return;
+    }
+    
+    setIsVoiceChatOpen(true);
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    recognitionRef.current = new SpeechRecognition();
+    
+    recognitionRef.current.continuous = true; 
+    
+    recognitionRef.current.interimResults = true; 
+    recognitionRef.current.lang = 'en-US';
+
+    recognitionRef.current.onresult = (event: any) => {
+      let finalTranscript = '';
+      
+      for (let i = 0; i < event.results.length; i++) {
+        finalTranscript += event.results[i][0].transcript;
+      }
+      
+      setInput(input + ' ' + finalTranscript);
+    };
+
+    recognitionRef.current.onerror = (event: any) => {
+      console.error('Speech recognition error:', event.error);
+      setIsVoiceChatOpen(false);
+    };
+
+    recognitionRef.current.onend = () => {
+       setIsVoiceChatOpen(false);
+    };
+
+    recognitionRef.current.start();
+  };
+
+  const stopListening = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+    setIsVoiceChatOpen(false);
+  };
+
   // Quick action suggestions
   const quickActions = conversations.length === 0 ? [
     'describe yourself', //normal chat
@@ -657,7 +704,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
             <Tooltip title="Upload image for visual search">
               <IconButton
                 onClick={() => fileInputRef.current?.click()}
-                disabled={loading || !!pastedImage}
+                disabled={loading || !!pastedImage || isVoiceChatOpen}
                 sx={{
                   color: 'text.secondary',
                   mr: 0.5,
@@ -676,18 +723,14 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
               onPaste={handlePaste}
               placeholder={pastedImage ? "Press Enter to search with image..." : "Describe what you're looking for..."}
               rows={1}
-              readOnly={!!pastedImage}
+              readOnly={!!pastedImage || isVoiceChatOpen}
               disabled={loading}
               style={pastedImage ? { cursor: 'pointer', opacity: 1 } : undefined}
             />
 
-            {!isVoiceChatOpen && (
             <Tooltip title="Voice chat">
               <IconButton
-                onClick={() => {
-                  fileInputRef.current?.click()
-                  setIsVoiceChatOpen(true);
-                }}
+                onClick={isVoiceChatOpen ? stopListening : startListening}
                 disabled={loading || !!pastedImage}
                 sx={{
                   color: 'text.secondary',
@@ -695,33 +738,15 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
                   '&:hover': { color: 'primary.main' },
                 }}
               >
-                <MicOffIcon />
+                {isVoiceChatOpen ? <MicOffIcon /> : <MicIcon />}
               </IconButton>
-            </Tooltip>)}
-
-            {isVoiceChatOpen && (
-              <Tooltip title="Voice chat">
-              <IconButton
-                onClick={() => {
-                  fileInputRef.current?.click()
-                  setIsVoiceChatOpen(false);
-                }}
-                disabled={loading || !!pastedImage}
-                sx={{
-                  color: 'text.secondary',
-                  mr: 0.5,
-                  '&:hover': { color: 'primary.main' },
-                }}
-              >
-                <MicIcon />
-              </IconButton>
-            </Tooltip>)}
+            </Tooltip>
               
 
             <SendButtonStyled
               type="submit"
-              $disabled={loading || (!input.trim() && !pastedImage)}
-              disabled={loading || (!input.trim() && !pastedImage)}
+              $disabled={loading || (!input.trim() && !pastedImage) || isVoiceChatOpen}
+              disabled={loading || (!input.trim() && !pastedImage) || isVoiceChatOpen}
             >
               {loading ? (
                 <CircularProgress size={20} color="inherit" />
