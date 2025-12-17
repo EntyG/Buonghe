@@ -718,12 +718,12 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
             <ChatTextarea
               ref={textareaRef}
               value={pastedImage ? '' : input}
-              onChange={(e) => !pastedImage && setInput(e.target.value)}
+              onChange={(e) => !pastedImage && !isVoiceChatOpen && setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               onPaste={handlePaste}
               placeholder={pastedImage ? "Press Enter to search with image..." : "Describe what you're looking for..."}
               rows={1}
-              readOnly={!!pastedImage || isVoiceChatOpen}
+              readOnly={!!pastedImage || !!isVoiceChatOpen}
               disabled={loading}
               style={pastedImage ? { cursor: 'pointer', opacity: 1 } : undefined}
             />
