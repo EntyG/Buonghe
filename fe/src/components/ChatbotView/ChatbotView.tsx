@@ -233,7 +233,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
         mode,
         SEARCH_MODEL,
         stateId || latestStateId || undefined,
-        256,
+        32,
         chatSessionId
       );
 
@@ -275,6 +275,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
       if (wasSearch && mikuData.searchQuery) {
         try {
           const sugRes = await getRephraseSuggestions(mikuData.searchQuery, message_ref);
+          console.log('Rephrase suggestions:', sugRes);
           dispatch(setSuggestions({ message_ref, suggestions: sugRes.variants || [] }));
 
           // Update conversation with suggestions
@@ -484,10 +485,9 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
 
   // Quick action suggestions
   const quickActions = conversations.length === 0 ? [
-    'a woman stretch the bow then fire an arrow but then it missed', //temporal
-    'a man holding 2 pills one red, one blue', //text
     'describe yourself', //normal chat
-    'a man wearing a hat which have the text "New York" on it' //filter
+    'a man holding 2 pills one red, one blue', //text
+    'character draws sword then explosion then character falls', //temporal
   ] : [];
 
   return (
@@ -674,8 +674,9 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
               onPaste={handlePaste}
               placeholder={pastedImage ? "Press Enter to search with image..." : "Describe what you're looking for..."}
               rows={1}
-              disabled={loading || !!pastedImage}
-              style={pastedImage ? { cursor: 'not-allowed', opacity: 0.6 } : undefined}
+              readOnly={!!pastedImage}
+              disabled={loading}
+              style={pastedImage ? { cursor: 'pointer', opacity: 1 } : undefined}
             />
 
             <SendButtonStyled

@@ -67,10 +67,8 @@ const ChatResultsGrid: React.FC<ChatResultsGridProps> = ({
       // getListClusterImages is async, but image_list is small and sync for local usage
       // So we use the sync logic here for now
       const urls = cluster.image_list.map((img) => {
-        if (img.path.startsWith('http')) return img.path;
-        // Use the same logic as getListClusterImages
         const BASE_IMAGE_URL = process.env.REACT_APP_BASE_IMAGE_URL || 'http://14.225.217.119:8081';
-        return `${BASE_IMAGE_URL}/${img.path}${img.id}.webp`;
+        return `${BASE_IMAGE_URL}${img.path}`;
       });
       cluster.image_list.forEach((item, idx) => {
         arr.push({ item, clusterName: cluster.cluster_name, imageUrl: urls[idx] });
@@ -145,7 +143,7 @@ const ChatResultsGrid: React.FC<ChatResultsGridProps> = ({
               {scene.image_list.map((item, idx) => {
                 // Use getListClusterImages logic for each image
                 const BASE_IMAGE_URL = process.env.REACT_APP_BASE_IMAGE_URL || 'http://14.225.217.119:8081';
-                const imageUrl = item.path.startsWith('http') ? item.path : `${BASE_IMAGE_URL}/${item.path}${item.id}.webp`;
+                const imageUrl = item.path.startsWith('http') ? item.path : `${BASE_IMAGE_URL}${item.path}`;
                 const feedback = feedbackMap.get(item.id);
                 const labels = ['Before', 'Now', 'After'];
                 const label = labels[idx] || item.name;

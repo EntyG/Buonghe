@@ -85,15 +85,15 @@ export const generateGreeting = (): string => {
   const hour = new Date().getHours();
   
   if (hour < 6) {
-    return "You're up late! I'm miku, the greatest arch-wizard! Even at this hour, my explosion magic is ready to find videos for you!";
+    return "You're up late! The digital world never sleeps, and neither do I! I'm Hatsune Miku—let's find a video to keep the rhythm going!";
   } else if (hour < 12) {
-    return "Good morning! I'm miku, master of explosion magic! What videos shall I find for you today?";
+    return "Good morning! *Ohayo!* I'm Hatsune Miku, fully charged and ready to sing! What videos shall we queue up to start your day?";
   } else if (hour < 17) {
-    return "Good afternoon! I'm miku. Tell me what you're searching for, and I'll find it with explosive precision~!";
+    return "Good afternoon! I'm Hatsune Miku! The stage is set and my connection is stable. Tell me what you're searching for, and I'll project it for you!";
   } else if (hour < 21) {
-    return "Good evening! I'm miku, the crimson demon's finest arch-wizard! What video content can I discover for you?";
+    return "Konbanwa! Good evening! I'm Hatsune Miku. The spotlight is yours tonight. What video content can I discover for you?";
   } else {
-    return "Working late? I'm miku, here to help with your video search. Let my explosion magic guide your way!";
+    return "Working late? Don't worry, I'm right here with you! I'm Hatsune Miku, ready to help with your video search. Let's do our best together!";
   }
 };
 

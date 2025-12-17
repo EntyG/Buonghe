@@ -137,7 +137,7 @@ export const searchClusters = async (
   mode: ClusterMode,
   collection: string = "clip_production_1024",
   state_id?: string,
-  top_k: number = 256
+  top_k: number = 32
 ): Promise<SearchResponse> => {
   // MOCK MODE: Return fake data for testing
   if (USE_MOCK_RETRIEVAL) {
@@ -163,7 +163,7 @@ export const getRephraseSuggestions = async (
   message_ref: string
 ): Promise<RephraseResponse> => {
   // MOCK MODE
-  if (USE_MOCK_RETRIEVAL) {
+  if (true) {
     console.log("[MOCK] getRephraseSuggestions:", { text });
     await mockDelay(200);
     return {
@@ -177,8 +177,9 @@ export const getRephraseSuggestions = async (
     };
   }
 
-  const res = await axios.post(`${BASE_URL}/api/chat/rephrase/suggestion`, {
+  const res = await axios.post(`${BASE_URL}/api/rephrase`, {
     text,
+    "target_lang": "en",
     message_ref,
   });
   return res.data as RephraseResponse;
@@ -192,7 +193,7 @@ export const postChatFilter = async (payload: any): Promise<any> => {
     return generateMockSearchResults("filtered", "moment");
   }
 
-  const res = await axios.post(`${BASE_URL}/api/chat/filter`, payload);
+  const res = await axios.post(`${BASE_URL}/api/filter`, payload);
   return res.data;
 };
 
@@ -282,17 +283,12 @@ export const visualSearch = async (
   }
 
   const formData = new FormData();
-  formData.append("files", file);
-  formData.append("mode", mode);
-  formData.append("collection", collection);
+  formData.append("file", file);
 
   // Only include state_id if it's provided and not empty
-  if (state_id && state_id.trim()) {
-    formData.append("state_id", state_id);
-  }
 
   const response = await axios.post<SearchResponse>(
-    `${BASE_URL}visual`,
+    `${BASE_URL}/api/visual`,
     formData,
     {
       headers: {
@@ -305,8 +301,7 @@ export const visualSearch = async (
 };
 
 export interface TemporalSearchInput {
-  type: "text" | "image";
-  content: string | File;
+  text: string;
 }
 
 export const temporalSearch = async (
@@ -316,73 +311,23 @@ export const temporalSearch = async (
 ): Promise<SearchResponse> => {
   // MOCK MODE
   if (USE_MOCK_RETRIEVAL) {
-    console.log("[MOCK] temporalSearch:", { inputs: inputs.map(i => i.content) });
+    console.log("[MOCK] temporalSearch:", { inputs: inputs.map(i => i.text) });
     await mockDelay(700);
     return generateMockTemporalResults(); // Use temporal-specific mock
   }
 
-  const formData = new FormData();
-
   // Map inputs to before, now, after (order from UI)
   const [beforeInput, nowInput, afterInput] = inputs;
 
-  // Simple schema matching backend expectations
-  const reqData: any = {
-    collection,
+  const payload: any = {
+    before: beforeInput,
+    now: nowInput,
+    after: afterInput,
+    top_k: 32
   };
 
-  // Add text descriptions for each position
-  if (
-    beforeInput.type === "text" &&
-    typeof beforeInput.content === "string" &&
-    beforeInput.content.trim()
-  ) {
-    reqData.before = { text: beforeInput.content };
-  }
-  if (
-    nowInput.type === "text" &&
-    typeof nowInput.content === "string" &&
-    nowInput.content.trim()
-  ) {
-    reqData.now = { text: nowInput.content };
-  }
-  if (
-    afterInput.type === "text" &&
-    typeof afterInput.content === "string" &&
-    afterInput.content.trim()
-  ) {
-    reqData.after = { text: afterInput.content };
-  }
-
-  // Add state_id if provided
-  if (state_id && state_id.trim()) {
-    reqData.state_id = state_id;
-  }
-
-  // Append req as JSON string
-  formData.append("req", JSON.stringify(reqData));
-
-  // Append images with specific names
-  if (beforeInput.type === "image" && beforeInput.content instanceof File) {
-    formData.append("before_image", beforeInput.content);
-  }
-  if (nowInput.type === "image" && nowInput.content instanceof File) {
-    formData.append("now_image", nowInput.content);
-  }
-  if (afterInput.type === "image" && afterInput.content instanceof File) {
-    formData.append("after_image", afterInput.content);
-  }
-
-  const response = await axios.post<SearchResponse>(
-    `${BASE_URL}/temporal`,
-    formData,
-    {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    }
-  );
-  return response.data;
+  const res = await axios.post<SearchResponse>(`${BASE_URL}/api/temporal`, payload);
+  return res.data;
 };
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -526,7 +471,7 @@ export const smartSearch = async (
   mode: ClusterMode,
   collection: string = "clip_production_1024",
   state_id?: string,
-  top_k: number = 256,
+  top_k: number = 32,
   sessionId: string = "default"
 ): Promise<SmartSearchResult> => {
   // Step 1: Ask miku to classify and respond
@@ -555,9 +500,9 @@ export const smartSearch = async (
             
             // Convert to TemporalSearchInput array [before, now, after]
             const temporalInputs: [TemporalSearchInput, TemporalSearchInput, TemporalSearchInput] = [
-              { type: "text", content: temporalQuery.before || "" },
-              { type: "text", content: temporalQuery.now || searchQuery || "" },
-              { type: "text", content: temporalQuery.after || "" }
+              { text: temporalQuery.before || "" },
+              { text: temporalQuery.now || searchQuery || "" },
+              { text: temporalQuery.after || "" }
             ];
             
             searchResult = await temporalSearch(temporalInputs, collection, state_id);
@@ -565,9 +510,9 @@ export const smartSearch = async (
             // Fallback: use searchQuery as the "now" event
             console.log("⏰ Temporal search fallback - using single query as 'now' event");
             const fallbackInputs: [TemporalSearchInput, TemporalSearchInput, TemporalSearchInput] = [
-              { type: "text", content: "" },
-              { type: "text", content: searchQuery },
-              { type: "text", content: "" }
+              { text: "" },
+              { text: searchQuery },
+              { text: "" }
             ];
             searchResult = await temporalSearch(fallbackInputs, collection, state_id);
           }
