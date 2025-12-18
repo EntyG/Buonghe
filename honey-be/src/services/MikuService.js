@@ -303,7 +303,7 @@ Response Format (STRICT - follow exactly):
 
 [INTENT: SEARCH or CHAT]
 [SEARCH_TYPE: TEXT or TEMPORAL or IMAGE or NONE]
-[SEARCH_QUERY: closest query to the original OR "none"]
+[SEARCH_QUERY: original query OR "none"]
 [TEMPORAL_BEFORE: scene BEFORE event OR "none"]
 [TEMPORAL_NOW: main event OR "none"]
 [TEMPORAL_AFTER: scene AFTER event OR "none"]

@@ -106,20 +106,20 @@ npm start
 ### 🐝 Honey-BE (AI Backend)
 **Base URL:** `http://localhost:3001`
 
-| Method | Endpoint | Description |
-|:---|:---|:---|
-| `POST` | `/api/speech/chat/smart` | **Core Endpoint.** Sends user input to Gemini. Returns intent (Search vs. Chat), Miku's text response, and audio. |
-| `POST` | `/api/speech/react/visual` | Generates Miku's reaction based on visual search results. |
+| Method | Endpoint                   | Description                                                                                                       |
+| :----- | :------------------------- | :---------------------------------------------------------------------------------------------------------------- |
+| `POST` | `/api/speech/chat/smart`   | **Core Endpoint.** Sends user input to Gemini. Returns intent (Search vs. Chat), Miku's text response, and audio. |
+| `POST` | `/api/speech/react/visual` | Generates Miku's reaction based on visual search results.                                                         |
 
 ### 🔍 ANIMESEARCHENGINE (Retrieval Backend)
 **Base URL:** `http://localhost:8000`
 
-| Method | Endpoint | Description |
-|:---|:---|:---|
-| `POST` | `/api/text` | Retrieves video frames based on text descriptions. |
-| `POST` | `/api/visual` | Retrieves video frames based on input images. |
+| Method | Endpoint        | Description                                                                                       |
+| :----- | :-------------- | :------------------------------------------------------------------------------------------------ |
+| `POST` | `/api/text`     | Retrieves video frames based on text descriptions.                                                |
+| `POST` | `/api/visual`   | Retrieves video frames based on input images.                                                     |
 | `POST` | `/api/temporal` | Performs temporal search (e.g., "a woman stretch the bow and fire the arrow but then it missed"). |
-| `POST` | `/api/rephrase`| Generates search suggestions or rephrases complex queries. |
+| `POST` | `/api/rephrase` | Generates search suggestions or rephrases complex queries.                                        |
 
 ## 🧩 How It Works
 

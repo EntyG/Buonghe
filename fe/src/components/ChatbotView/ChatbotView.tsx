@@ -541,9 +541,9 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
 
   // Quick action suggestions
   const quickActions = conversations.length === 0 ? [
-    'describe yourself', //normal chat
-    'a man walking on the ship', //text
-    'character draws sword then explosion then character falls', //temporal
+    'Describe yourself', //normal chat
+    'Close-up of a large orange beast tail next to a man in a maroon suit with a distorted face', //text
+    'A boy with pink hair and glasses asking Luffy a question, followed by a close-up of Luffy smiling, and ending with the boy siting next to Luffy looking shocked with his jaw dropped', //temporal
   ] : [];
 
   return (
@@ -622,10 +622,10 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
 
               {quickActions.length > 0 && (
                 <>
-                  <Box sx={{ fontSize: '0.9rem', color: 'text.secondary', mb: 2 }}>
+                  <Box sx={{ fontSize: '0.9rem', color: 'text.secondary', mb: 2, textAlign: 'center', width: '100%' }}>
                     Try one of these searches:
                   </Box>
-                  <QuickActions>
+                  <QuickActions style={{ justifyContent: 'center', width: '100%' }}>
                     {quickActions.map((action, idx) => (
                       <QuickActionChip
                         key={idx}
