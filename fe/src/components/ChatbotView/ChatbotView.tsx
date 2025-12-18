@@ -66,6 +66,8 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import ImageIcon from '@mui/icons-material/Image';
 import MicOffIcon from '@mui/icons-material/MicOff';
 import MicIcon from '@mui/icons-material/Mic';
+import PhotoIcon from '@mui/icons-material/Photo';
+import SlideshowIcon from '@mui/icons-material/Slideshow';
 
 interface ConversationItem {
   id: string;
@@ -97,7 +99,11 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
   // State
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [mode] = useState<ClusterMode>('moment'); // Fixed to moment mode
+  const [mode, setMode] = useState<ClusterMode>('moment'); // Toggle between 'moment' and 'video' mode
+  // Toggle mode handler
+  const handleToggleMode = () => {
+    setMode((prev) => (prev === 'moment' ? 'video' : 'moment'));
+  };
   const [latestStateId, setLatestStateId] = useState('');
   const [feedbackMap, setFeedbackMap] = useState<Map<string, 'positive' | 'negative'>>(new Map());
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
@@ -493,24 +499,24 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
       alert('Speech recognition not supported. I can\'t hear you!');
       return;
     }
-    
+
     setIsVoiceChatOpen(true);
 
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     recognitionRef.current = new SpeechRecognition();
-    
-    recognitionRef.current.continuous = true; 
-    
-    recognitionRef.current.interimResults = true; 
+
+    recognitionRef.current.continuous = true;
+
+    recognitionRef.current.interimResults = true;
     recognitionRef.current.lang = 'en-US';
 
     recognitionRef.current.onresult = (event: any) => {
       let finalTranscript = '';
-      
+
       for (let i = 0; i < event.results.length; i++) {
         finalTranscript += event.results[i][0].transcript;
       }
-      
+
       setInput(input + ' ' + finalTranscript);
     };
 
@@ -520,7 +526,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
     };
 
     recognitionRef.current.onend = () => {
-       setIsVoiceChatOpen(false);
+      setIsVoiceChatOpen(false);
     };
 
     recognitionRef.current.start();
@@ -536,7 +542,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
   // Quick action suggestions
   const quickActions = conversations.length === 0 ? [
     'describe yourself', //normal chat
-    'a man holding 2 pills one red, one blue', //text
+    'a man walking on the ship', //text
     'character draws sword then explosion then character falls', //temporal
   ] : [];
 
@@ -590,6 +596,14 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
           </HeaderTitle>
 
           <HeaderControls>
+            <Tooltip title={mode === 'moment' ? 'Video Mode' : 'Moment Mode'}>
+              <IconButton
+                size="small"
+                onClick={handleToggleMode}
+              >
+                {mode === 'moment' ? <PhotoIcon /> : <SlideshowIcon />}
+              </IconButton>
+            </Tooltip>
             <Tooltip title={dark ? 'Light Mode' : 'Dark Mode'}>
               <IconButton onClick={onToggleTheme} size="small">
                 {dark ? <LightModeIcon /> : <DarkModeIcon />}
@@ -700,7 +714,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
                 e.target.value = ''; // Reset to allow same file selection
               }}
             />
-            
+
             <Tooltip title="Upload image for visual search">
               <IconButton
                 onClick={() => fileInputRef.current?.click()}
@@ -741,7 +755,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
                 {isVoiceChatOpen ? <MicOffIcon /> : <MicIcon />}
               </IconButton>
             </Tooltip>
-              
+
 
             <SendButtonStyled
               type="submit"
@@ -882,7 +896,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
                     color="primary"
                     startIcon={<PlayArrowIcon />}
                     onClick={() => {
-                      window.open(zoomedImage.item.url || '', '_blank');
+                      window.open(zoomedImage.item.url || 'example.com', '_blank');
                     }}
                     sx={{
                       textTransform: 'none',

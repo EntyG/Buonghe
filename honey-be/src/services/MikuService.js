@@ -69,7 +69,7 @@ class MikuService {
     const {
       model = 'gemini-2.5-flash',
       temperature = 0.3,
-      maxTokens = 512
+      maxTokens = 1024
     } = options;
 
     try {
@@ -287,9 +287,9 @@ Examples: "find cats", "show me sunsets", "videos of people dancing"
 TEMPORAL: Time-based searches for events with relationships (before, after, next, then, preceding).
 Logic: Break the query into before, now, and after states.
 Examples: "a man after a crash, standing up like nothing happened and then walking away after 30s"
-- BEFORE: crash event
-- NOW: standing up 
-- AFTER: walking away   
+- BEFORE: a crash
+- NOW: a man standing up 
+- AFTER: a man walking away   
 
 IMAGE: When user mentions uploaded picture.
 
@@ -303,10 +303,12 @@ Response Format (STRICT - follow exactly):
 
 [INTENT: SEARCH or CHAT]
 [SEARCH_TYPE: TEXT or TEMPORAL or IMAGE or NONE]
-[SEARCH_QUERY: optimized English visual description OR "none"]
+[SEARCH_QUERY: closest query to the original OR "none"]
 [TEMPORAL_BEFORE: scene BEFORE event OR "none"]
 [TEMPORAL_NOW: main event OR "none"]
 [TEMPORAL_AFTER: scene AFTER event OR "none"]
+[FILTER_OCR: text to filter or "none"]
+[FILTER_GENRE: genre to filter or "none"]
 [MOOD: energetic/melodic/digital/grateful/curious/concerned/happy]
 [RESPONSE: Your in-character response as Hatsune Miku in English]
 [RESPONSE_JP: Japanese translation optimized for TTS. Do NOT use brackets or English. Use "〜" to elongate vowels for a cute tone. Use "！" for energy.]
@@ -316,7 +318,7 @@ Examples:
 User: "Show me cats"
 [INTENT: SEARCH]
 [SEARCH_TYPE: TEXT]
-[SEARCH_QUERY: cat cute feline]
+[SEARCH_QUERY: cats]
 [TEMPORAL_BEFORE: none]
 [TEMPORAL_NOW: none]
 [TEMPORAL_AFTER: none]

@@ -38,12 +38,12 @@ const MOCK_MOVIES = [
 const generateMockImages = (count: number, clusterSeed: number = 0) => {
   const images = [];
   const movie = MOCK_MOVIES[clusterSeed % MOCK_MOVIES.length];
-  
+
   for (let i = 0; i < count; i++) {
     const seed = clusterSeed * 100 + i + Date.now() % 1000;
     const imageUrl = RANDOM_IMAGE_SERVICES[0](320, 180, seed);
     const timeInSeconds = Math.floor(Math.random() * 7200); // 0-2 hours
-    
+
     images.push({
       id: `mock_${seed}`,
       path: imageUrl, // Use full URL as path for mock
@@ -68,16 +68,16 @@ const generateMockTemporalResults = (): SearchResponse => {
   for (let i = 0; i < sceneCount; i++) {
     const movie = MOCK_MOVIES[i % MOCK_MOVIES.length];
     const baseTime = Math.floor(Math.random() * 6000) + 600; // 10min to 110min
-    
+
     // Each scene has 3 frames: before, now, after (consecutive timestamps)
     const sceneImages = [];
     const labels = ['Before', 'Now', 'After'];
-    
+
     for (let j = 0; j < 3; j++) {
       const seed = i * 1000 + j + Date.now() % 1000;
       const imageUrl = RANDOM_IMAGE_SERVICES[0](320, 180, seed);
       const timeInSeconds = baseTime + (j - 1) * 5; // -5s, 0s, +5s from base
-      
+
       sceneImages.push({
         id: `temporal_${seed}`,
         path: imageUrl,
@@ -91,7 +91,7 @@ const generateMockTemporalResults = (): SearchResponse => {
         temporalPosition: labels[j].toLowerCase() as 'before' | 'now' | 'after',
       });
     }
-    
+
     clusters.push({
       cluster_name: `Scene ${i + 1} - ${movie.name}`,
       url: null,
@@ -163,7 +163,7 @@ export const getRephraseSuggestions = async (
   message_ref: string
 ): Promise<RephraseResponse> => {
   // MOCK MODE
-  if (USE_MOCK_RETRIEVAL) {
+  if (true) {
     console.log("[MOCK] getRephraseSuggestions:", { text });
     await mockDelay(200);
     return {
@@ -212,21 +212,21 @@ export interface FilterSearchPayload {
 const generateMockFilterResults = (payload: FilterSearchPayload): SearchResponse => {
   const clusters: ClusterResult[] = [];
   const { filters, text } = payload;
-  
+
   // Build description of applied filters (only OCR and Genre)
   const filterParts: string[] = [];
   if (filters.ocr?.length) filterParts.push(`OCR: "${filters.ocr.join(', ')}"`);
   if (filters.genre?.length) filterParts.push(`Genre: ${filters.genre.join(', ')}`);
-  
-  const filterDescription = filterParts.length > 0 
-    ? filterParts.join(' | ') 
+
+  const filterDescription = filterParts.length > 0
+    ? filterParts.join(' | ')
     : 'No filters';
-  
+
   const clusterCount = Math.floor(Math.random() * 3) + 2; // 2-4 clusters
   for (let i = 0; i < clusterCount; i++) {
     const imageCount = Math.floor(Math.random() * 5) + 3; // 3-7 images
     const movie = MOCK_MOVIES[i % MOCK_MOVIES.length];
-    
+
     clusters.push({
       cluster_name: `${movie.name} - ${text || 'Filtered Results'}`,
       url: null,
@@ -323,7 +323,7 @@ export const temporalSearch = async (
     before: beforeInput,
     now: nowInput,
     after: afterInput,
-    top_k: 32
+    top_k: 10
   };
 
   const res = await axios.post<SearchResponse>(`${BASE_URL}/api/temporal`, payload);
@@ -477,13 +477,13 @@ export const smartSearch = async (
   // Step 1: Ask miku to classify and respond
   const mikuResponse = await smartChatWithMiku(query, sessionId);
   const { isSearchQuery, searchType, searchQuery, temporalQuery, filterQuery } = mikuResponse.data;
-  
+
   // Step 2: If it's a search query, call the appropriate retrieval backend
   let searchResult: SearchResponse | null = null;
-  
+
   if (isSearchQuery) {
     console.log(`🔍 miku classified: ${searchType} search`);
-    
+
     try {
       switch (searchType) {
         case "TEXT":
@@ -492,19 +492,19 @@ export const smartSearch = async (
             searchResult = await searchClusters(searchQuery, mode, collection, state_id, top_k);
           }
           break;
-          
+
         case "TEMPORAL":
           // Temporal search with before/now/after structure
           if (temporalQuery) {
             console.log("⏰ Temporal search with structured query:", temporalQuery);
-            
+
             // Convert to TemporalSearchInput array [before, now, after]
             const temporalInputs: [TemporalSearchInput, TemporalSearchInput, TemporalSearchInput] = [
               { text: temporalQuery.before || "" },
               { text: temporalQuery.now || searchQuery || "" },
               { text: temporalQuery.after || "" }
             ];
-            
+
             searchResult = await temporalSearch(temporalInputs, collection, state_id);
           } else if (searchQuery) {
             // Fallback: use searchQuery as the "now" event
@@ -517,12 +517,12 @@ export const smartSearch = async (
             searchResult = await temporalSearch(fallbackInputs, collection, state_id);
           }
           break;
-          
+
         case "FILTER":
           // Filter search with metadata filters (OCR and Genre only)
           if (filterQuery) {
             console.log("🔧 Filter search with:", { searchQuery, filterQuery });
-            
+
             // Build filter payload matching backend API
             const filterPayload = {
               mode: "moment",
@@ -533,7 +533,7 @@ export const smartSearch = async (
               text: searchQuery || "",  // Visual description (optional)
               top_k,
             };
-            
+
             searchResult = await filterSearch(filterPayload, collection, state_id);
           } else if (searchQuery) {
             // No filter data, fall back to text search
@@ -541,13 +541,13 @@ export const smartSearch = async (
             searchResult = await searchClusters(searchQuery, mode, collection, state_id, top_k);
           }
           break;
-          
+
         case "IMAGE":
           // Image search will be handled separately (user uploads image)
           console.log("🖼️ Image search requested - waiting for image upload");
           searchResult = null;
           break;
-          
+
         default:
           if (searchQuery) {
             searchResult = await searchClusters(searchQuery, mode, collection, state_id, top_k);

@@ -33,18 +33,20 @@ const ChatResultsGrid: React.FC<ChatResultsGridProps> = ({
   feedbackMap = new Map(),
 }) => {
   const gridRef = useRef<HTMLDivElement>(null);
-  const [itemsPerRow, setItemsPerRow] = useState(8); // Default 8 per row
-  const [maxVisible, setMaxVisible] = useState(initialMaxImages); // Current max visible images
-  const [visibleScenes, setVisibleScenes] = useState(3); // For temporal view
+  const [itemsPerRow, setItemsPerRow] = useState(8);
+  const [maxVisible, setMaxVisible] = useState(initialMaxImages);
+  const [visibleScenes, setVisibleScenes] = useState(3);
 
-  // Check if this is a temporal search (scenes with before/now/after)
+  // New state to track visible count per video in 'video' mode
+  const [videoVisibleCounts, setVideoVisibleCounts] = useState<Record<string, number>>({});
+
   const isTemporal = searchType === 'TEMPORAL' || searchType === 'temporal';
 
   // Calculate items per row based on grid width
   useEffect(() => {
     const calculateItemsPerRow = () => {
       if (gridRef.current) {
-        const gridWidth = gridRef.current.offsetWidth - 24; // Subtract padding
+        const gridWidth = gridRef.current.offsetWidth - 24;
         const minItemWidth = 140;
         const gap = 8;
         const calculatedItems = Math.floor((gridWidth + gap) / (minItemWidth + gap));
@@ -57,24 +59,34 @@ const ChatResultsGrid: React.FC<ChatResultsGridProps> = ({
     return () => window.removeEventListener('resize', calculateItemsPerRow);
   }, []);
 
+  // Reset video counts when results change
+  useEffect(() => {
+    setVideoVisibleCounts({});
+  }, [results]);
 
-  // For temporal: each cluster is a scene with before/now/after
-  // For regular: flatten all images, and use getListClusterImages to get URLs
+  function convertFramePathToVuigheUrl(path: string): string {
+    const match = path.match(
+      /^\/static\/frames\/([^\/]+)\/ep(\d+)\/([^\/]+)$/
+    );
+    if (!match) return path;
+    const anime = match[1];
+    const episodeNum = parseInt(match[2], 10);
+    const frameFile = match[3];
+    return `https://vuighe.cam/${anime}/tap-${episodeNum}/`;
+  }
+
   const allImages: { item: ImageItem; clusterName: string; imageUrl: string }[] = useMemo(() => {
     let arr: { item: ImageItem; clusterName: string; imageUrl: string }[] = [];
     results.forEach((cluster) => {
-      // Use getListClusterImages to get URLs for this cluster
-      // getListClusterImages is async, but image_list is small and sync for local usage
-      // So we use the sync logic here for now
       const paths = cluster.image_list.map((img) => {
         const BASE_IMAGE_URL = process.env.REACT_APP_BASE_IMAGE_URL || 'http://14.225.217.119:8081';
         return `${BASE_IMAGE_URL}${img.path}`;
       });
       cluster.image_list.forEach((item, idx) => {
         arr.push({
-          item: { 
-            ...item, 
-            url: (cluster.url ?? '') + "#autoseek=" + (item.time_in_seconds !== undefined ? item.time_in_seconds : '') 
+          item: {
+            ...item,
+            url: convertFramePathToVuigheUrl(item.path) + "#autoseek=" + (item.time_in_seconds !== undefined ? item.time_in_seconds : '')
           },
           clusterName: cluster.cluster_name,
           imageUrl: paths[idx],
@@ -84,12 +96,31 @@ const ChatResultsGrid: React.FC<ChatResultsGridProps> = ({
     return arr;
   }, [results]);
 
-  // Calculate visible images: starts at initialMaxImages, increases by imagesPerExpand each click
+  // Group images by video for 'video' mode
+  const videoGroups = useMemo(() => {
+    const groups: { [video: string]: typeof allImages } = {};
+    if (mode === 'video') {
+      allImages.forEach(img => {
+        const video = img.item.videoName || 'Unknown Video';
+        if (!groups[video]) groups[video] = [];
+        groups[video].push(img);
+      });
+    }
+    return groups;
+  }, [allImages, mode]);
+
+  // Handle expanding a specific video group
+  const handleShowMoreVideo = (videoName: string) => {
+    setVideoVisibleCounts(prev => ({
+      ...prev,
+      [videoName]: (prev[videoName] || initialMaxImages) + imagesPerExpand
+    }));
+  };
+
   const displayImages = allImages.slice(0, maxVisible);
   const remainingCount = allImages.length - displayImages.length;
   const hasMore = remainingCount > 0;
 
-  // For temporal view
   const displayScenes = useMemo(() => results.slice(0, visibleScenes), [results, visibleScenes]);
   const remainingScenes = results.length - displayScenes.length;
   const hasMoreScenes = remainingScenes > 0;
@@ -104,9 +135,9 @@ const ChatResultsGrid: React.FC<ChatResultsGridProps> = ({
 
   if (displayImages.length === 0) {
     return (
-      <Box sx={{ 
-        p: 2, 
-        textAlign: 'center', 
+      <Box sx={{
+        p: 2,
+        textAlign: 'center',
         color: 'text.secondary',
         background: 'rgba(0,0,0,0.2)',
         borderRadius: 2,
@@ -117,7 +148,81 @@ const ChatResultsGrid: React.FC<ChatResultsGridProps> = ({
     );
   }
 
-  // Temporal view: Display as scenes with before → now → after
+  // --- Video Mode ---
+  if (mode === 'video' && !isTemporal) {
+    return (
+      <Box sx={{ mt: 1.5 }}>
+        {Object.entries(videoGroups).map(([video, images]) => {
+          // Determine limit for this specific video
+          const currentLimit = videoVisibleCounts[video] || initialMaxImages;
+          const visibleVideoImages = images.slice(0, currentLimit);
+          const remainingVideoCount = images.length - visibleVideoImages.length;
+          const hasMoreVideo = remainingVideoCount > 0;
+
+          return (
+            <Box key={video} sx={{ mb: 3, p: 1.5, bgcolor: 'rgba(0,0,0,0.2)', borderRadius: 2 }}>
+              <Typography variant="subtitle2" sx={{ color: 'primary.main', fontWeight: 600, mb: 1 }}>
+                📽️ {video} <span style={{ opacity: 0.7, fontWeight: 400 }}>({images.length})</span>
+              </Typography>
+
+              <ResultsGrid>
+                {visibleVideoImages.map(({ item, imageUrl }, idx) => {
+                  const feedback = feedbackMap.get(item.id);
+                  return (
+                    <ResultImage
+                      key={`${item.id}-${idx}`}
+                      onClick={() => onImageClick?.(item, imageUrl)}
+                      style={{
+                        border: feedback
+                          ? `2px solid ${feedback === 'positive' ? '#4ade80' : '#f87171'}`
+                          : '2px solid transparent',
+                      }}
+                    >
+                      <img src={imageUrl} alt={item.name || item.id} loading="lazy" />
+                      <div className="overlay">
+                        <div>{item.name || item.id.split('/').pop()}</div>
+                        {item.time_in_seconds !== undefined && (
+                          <div style={{ fontSize: '0.65rem', opacity: 0.8 }}>
+                            {Math.floor(item.time_in_seconds / 60)}:{String(Math.floor(item.time_in_seconds % 60)).padStart(2, '0')}
+                          </div>
+                        )}
+                      </div>
+                    </ResultImage>
+                  );
+                })}
+              </ResultsGrid>
+
+              {/* Show More Button for this specific video */}
+              {hasMoreVideo && (
+                <Box
+                  onClick={() => handleShowMoreVideo(video)}
+                  sx={{
+                    textAlign: 'center',
+                    mt: 1,
+                    py: 0.75,
+                    color: 'primary.main',
+                    fontSize: '0.85rem',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    borderRadius: 1,
+                    transition: 'all 0.2s',
+                    '&:hover': {
+                      bgcolor: 'rgba(255,255,255,0.05)',
+                      textDecoration: 'underline',
+                    }
+                  }}
+                >
+                  +{remainingVideoCount} more in {video}
+                </Box>
+              )}
+            </Box>
+          );
+        })}
+      </Box>
+    );
+  }
+
+  // --- Temporal View ---
   if (isTemporal) {
     return (
       <Box sx={{ mt: 1.5 }}>
@@ -132,34 +237,23 @@ const ChatResultsGrid: React.FC<ChatResultsGridProps> = ({
               border: '1px solid rgba(255,255,255,0.1)',
             }}
           >
-            {/* Scene header */}
-            <Typography 
-              variant="caption" 
-              sx={{ 
-                color: 'primary.main', 
-                fontWeight: 600,
-                display: 'block',
-                mb: 1,
-              }}
-            >
+            <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 600, display: 'block', mb: 1 }}>
               {scene.cluster_name}
             </Typography>
-            
-            {/* Before → Now → After sequence */}
+
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, overflowX: 'auto' }}>
               {scene.image_list.map((item, idx) => {
-                // Use getListClusterImages logic for each image
                 const BASE_IMAGE_URL = process.env.REACT_APP_BASE_IMAGE_URL || 'http://14.225.217.119:8081';
                 const imageUrl = item.path.startsWith('http') ? item.path : `${BASE_IMAGE_URL}${item.path}`;
+                const videoUrl = convertFramePathToVuigheUrl(item.path) + (item.time_in_seconds !== undefined ? `#autoseek=${item.time_in_seconds}` : '');
                 const feedback = feedbackMap.get(item.id);
                 const labels = ['Before', 'Now', 'After'];
                 const label = labels[idx] || item.name;
                 const isNow = idx === 1;
-                
+
                 return (
                   <React.Fragment key={item.id}>
                     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 160 }}>
-                      {/* Label */}
                       <Chip
                         label={label}
                         size="small"
@@ -171,9 +265,8 @@ const ChatResultsGrid: React.FC<ChatResultsGridProps> = ({
                           fontSize: '0.7rem',
                         }}
                       />
-                      {/* Image */}
                       <ResultImage
-                        onClick={() => onImageClick?.(item, imageUrl)}
+                        onClick={() => onImageClick?.({ ...item, url: videoUrl }, imageUrl)}
                         style={{
                           width: 160,
                           height: 90,
@@ -192,7 +285,6 @@ const ChatResultsGrid: React.FC<ChatResultsGridProps> = ({
                         </div>
                       </ResultImage>
                     </Box>
-                    {/* Arrow between frames */}
                     {idx < scene.image_list.length - 1 && (
                       <ArrowForwardIcon sx={{ color: 'text.secondary', fontSize: 20, flexShrink: 0 }} />
                     )}
@@ -200,8 +292,7 @@ const ChatResultsGrid: React.FC<ChatResultsGridProps> = ({
                 );
               })}
             </Box>
-            
-            {/* Movie info */}
+
             {scene.image_list[0]?.videoName && (
               <Typography variant="caption" sx={{ color: 'text.secondary', mt: 1, display: 'block' }}>
                 📽️ {scene.image_list[0].videoName}
@@ -209,12 +300,12 @@ const ChatResultsGrid: React.FC<ChatResultsGridProps> = ({
             )}
           </Box>
         ))}
-        
+
         {hasMoreScenes && (
-          <Box 
+          <Box
             onClick={handleShowMoreScenes}
-            sx={{ 
-              textAlign: 'center', 
+            sx={{
+              textAlign: 'center',
               mt: 1,
               py: 0.75,
               color: 'primary.main',
@@ -236,27 +327,23 @@ const ChatResultsGrid: React.FC<ChatResultsGridProps> = ({
     );
   }
 
-  // Regular grid view
+  // --- Regular grid view ---
   return (
     <Box sx={{ mt: 1.5 }}>
       <ResultsGrid ref={gridRef}>
         {displayImages.map(({ item, clusterName, imageUrl }, index) => {
           const feedback = feedbackMap.get(item.id);
           return (
-            <ResultImage 
+            <ResultImage
               key={`${item.id}-${index}`}
               onClick={() => onImageClick?.(item, imageUrl)}
               style={{
-                border: feedback 
+                border: feedback
                   ? `2px solid ${feedback === 'positive' ? '#4ade80' : '#f87171'}`
                   : '2px solid transparent'
               }}
             >
-              <img 
-                src={imageUrl} 
-                alt={item.name || item.id}
-                loading="lazy"
-              />
+              <img src={imageUrl} alt={item.name || item.id} loading="lazy" />
               <div className="overlay">
                 <div>{item.name || item.id.split('/').pop()}</div>
                 {item.time_in_seconds !== undefined && (
@@ -265,8 +352,7 @@ const ChatResultsGrid: React.FC<ChatResultsGridProps> = ({
                   </div>
                 )}
               </div>
-              
-              {/* Feedback buttons on hover */}
+
               {onFeedback && (
                 <Box
                   className="feedback-buttons"
@@ -320,12 +406,12 @@ const ChatResultsGrid: React.FC<ChatResultsGridProps> = ({
           );
         })}
       </ResultsGrid>
-      
+
       {hasMore && (
-        <Box 
+        <Box
           onClick={handleShowMore}
-          sx={{ 
-            textAlign: 'center', 
+          sx={{
+            textAlign: 'center',
             mt: 1,
             py: 0.75,
             color: 'primary.main',
