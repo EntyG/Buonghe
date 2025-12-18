@@ -163,7 +163,7 @@ export const getRephraseSuggestions = async (
   message_ref: string
 ): Promise<RephraseResponse> => {
   // MOCK MODE
-  if (true) {
+  if (USE_MOCK_RETRIEVAL) {
     console.log("[MOCK] getRephraseSuggestions:", { text });
     await mockDelay(200);
     return {
