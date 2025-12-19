@@ -44,24 +44,7 @@ Buonghe/
 ---
 
 ### 1. Retrieval Backend (`AnimeSearchEngine`)
-This service handles the vector database and search logic.
-
-```bash
-cd AnimeSearchEngine
-# Create virtual environment (optional but recommended)
-python -m venv venv
-source venv/bin/activate # or venv\Scripts\activate on Windows
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Configure environment
-cp .env.template .env
-# Edit .env with your database credentials
-
-# Run the server (Port 8082)
-python server.py
-```
+This service handles the vector database and search logic. Check `AnimeSearchEngine/setupguideline.md`.
 
 ### 2. AI Backend (`honey-be`)
 This service handles LLM processing, query intent classification, and TTS.
