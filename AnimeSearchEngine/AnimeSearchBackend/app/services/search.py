@@ -291,7 +291,7 @@ class SearchService:
         
         try:
             # Lấy top_k lớn hơn một chút để có đủ dữ liệu cho việc khớp (alignment)
-            search_limit = request.top_k * 3 
+            search_limit = request.top_k * 20 
             
             # Mặc định cửa sổ thời gian (nếu request không có thì dùng 120s)
             time_window = getattr(request, 'time_window', 120) 
@@ -375,16 +375,20 @@ class SearchService:
         # Tối ưu hóa: Gom nhóm Before và After theo anime_id để tìm kiếm nhanh
         before_map = defaultdict(list)
         for r in results_before:
-            before_map[r['anime_id']].append(r)
+            # Key = (anime_id, episode)
+            key = (r['anime_id'], r['episode'])
+            before_map[key].append(r)
             
         after_map = defaultdict(list)
         for r in results_after:
-            after_map[r['anime_id']].append(r)
+            key = (r['anime_id'], r['episode'])
+            after_map[key].append(r)
             
         final_sequences = []
         
         for now_item in results_now:
-            anime_id = now_item['anime_id']
+            current_video_key = (now_item['anime_id'], now_item['episode'])
+
             now_ts = now_item['timestamp']
             current_score = now_item['score']
             
@@ -393,7 +397,7 @@ class SearchService:
             # --- 1. Find Best BEFORE ---
             best_before = None
             if results_before:
-                candidates = before_map.get(anime_id, [])
+                candidates = before_map.get(current_video_key, [])
                 # Khởi tạo score là vô cùng lớn để tìm MIN
                 best_match_score = float('inf')
                 
@@ -413,7 +417,7 @@ class SearchService:
             # --- 2. Find Best AFTER ---
             best_after = None
             if results_after:
-                candidates = after_map.get(anime_id, [])
+                candidates = after_map.get(current_video_key, [])
                 best_match_score = float('inf')
                 
                 for cand in candidates:
@@ -455,7 +459,8 @@ class SearchService:
             final_sequences.append({
                 "score": avg_score,
                 "items": sequence_items,
-                "video_url": now_item.get('source_url') or now_item.get('video_url')
+                "video_url": now_item.get('source_url') or now_item.get('video_url'),
+                "video_title": now_item.get('anime_title', '')
             })
             
         # Sắp xếp Giảm DẦN (Descending) theo yêu cầu của bạn
@@ -466,7 +471,7 @@ class SearchService:
         clusters = []
         for idx, seq in enumerate(final_sequences[:top_k]):
             clusters.append(ClusterResult(
-                cluster_name=f"Sequence {idx + 1} (Score: {seq['score']:.2f})",
+                cluster_name=f"📽️{seq['video_title']}",
                 url=seq['video_url'],
                 image_list=seq['items']
             ))
