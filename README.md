@@ -11,7 +11,7 @@ The project is divided into four main components:
 ```bash
 Buonghe/
 ├── fe/                      # Frontend: React (TypeScript) & Live2D integration
-├── be/                      # Retrieval Backend: Python (FastAPI) for vector search
+├── AnimeSearchEngine/       # Retrieval Backend: Python (FastAPI) for vector search
 ├── honey-be/                # AI Backend: Node.js (Gemini LLM + ElevenLabs TTS)
 ├── vuighe-seeker-extension/ # Chrome Extension: Enables auto-seeking on streaming sites
 └── README.md
