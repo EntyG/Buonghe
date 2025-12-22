@@ -1,7 +1,3 @@
-Here is a comprehensive and polished version of your documentation in English. I have organized it to look professional for a GitHub README, added details about the Chrome Extension installation (since it's a manual process), and refined the language.
-
-***
-
 # 🎵 Buonghe - Intelligent Virtual Assistant for Movie Retrieval
 
 > **Experience a new way to search for anime moments with Hatsune Miku.**
