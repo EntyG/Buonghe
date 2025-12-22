@@ -292,12 +292,6 @@ const ChatResultsGrid: React.FC<ChatResultsGridProps> = ({
                 );
               })}
             </Box>
-
-            {scene.image_list[0]?.videoName && (
-              <Typography variant="caption" sx={{ color: 'text.secondary', mt: 1, display: 'block' }}>
-                📽️ {scene.image_list[0].videoName}
-              </Typography>
-            )}
           </Box>
         ))}
 

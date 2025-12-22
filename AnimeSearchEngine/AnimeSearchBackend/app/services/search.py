@@ -371,6 +371,8 @@ class SearchService:
         Core logic: Align Independent search results by Video ID and Timestamp.
         Strategy: Min-Score Selection & Ascending Sort (Lower score is better).
         """
+
+        decay = 0.95
         
         # Tối ưu hóa: Gom nhóm Before và After theo anime_id để tìm kiếm nhanh
         before_map = defaultdict(list)
@@ -399,14 +401,14 @@ class SearchService:
             if results_before:
                 candidates = before_map.get(current_video_key, [])
                 # Khởi tạo score là vô cùng lớn để tìm MIN
-                best_match_score = float('inf')
+                best_match_score = -1
                 
                 for cand in candidates:
                     ts = cand['timestamp']
+                    dif = abs(now_ts - ts)
                     # Điều kiện: Cùng video, Trước 'Now', Trong khoảng time_window
                     if 0 <= (now_ts - ts) <= time_window:
-                        # Logic: Chọn điểm THẤP NHẤT (Lower is Better)
-                        if cand['score'] < best_match_score:
+                        if cand['score']*decay**dif > best_match_score:
                             best_match_score = cand['score']
                             best_before = cand
                 
@@ -418,14 +420,14 @@ class SearchService:
             best_after = None
             if results_after:
                 candidates = after_map.get(current_video_key, [])
-                best_match_score = float('inf')
+                best_match_score = -1
                 
                 for cand in candidates:
                     ts = cand['timestamp']
+                    dif = abs(now_ts - ts)
                     # Điều kiện: Sau 'Now', Trong khoảng time_window
                     if 0 <= (ts - now_ts) <= time_window:
-                        # Logic: Chọn điểm THẤP NHẤT
-                        if cand['score'] < best_match_score:
+                        if cand['score']*decay**dif > best_match_score:
                             best_match_score = cand['score']
                             best_after = cand
                             
