@@ -543,7 +543,7 @@ const ChatbotView: React.FC<ChatbotViewProps> = ({
   const quickActions = conversations.length === 0 ? [
     'Describe yourself', //normal chat
     'Luffy eating meat', //text
-    'Close-up of brown-haired man, 01:00 digital clock, then two men standing side-by-side', //temporal
+    'usopp in the hill see the ocean then the face of luffy from the right hand side then a scenic establishing shot featuring a vast, bright blue sky filled with large, fluffy white clouds. Below, the calm blue ocean stretches out to meet the sky at the horizon line.', //temporal
   ] : [];
 
   return (

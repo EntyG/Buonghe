@@ -291,7 +291,7 @@ class SearchService:
         
         try:
             # Lấy top_k lớn hơn một chút để có đủ dữ liệu cho việc khớp (alignment)
-            search_limit = request.top_k * 20 
+            search_limit = request.top_k * 32
             
             # Mặc định cửa sổ thời gian (nếu request không có thì dùng 120s)
             time_window = getattr(request, 'time_window', 120) 
@@ -372,7 +372,7 @@ class SearchService:
         Strategy: Min-Score Selection & Ascending Sort (Lower score is better).
         """
 
-        decay = 0.95
+        decay = 0.96
         
         # Tối ưu hóa: Gom nhóm Before và After theo anime_id để tìm kiếm nhanh
         before_map = defaultdict(list)
